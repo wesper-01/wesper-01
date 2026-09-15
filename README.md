@@ -1,6 +1,6 @@
 # Hey, I'm Rayane 👋
 
-19 y/o engineering student from Morocco, currently based in Burgos, Spain.
+20 years old engineering student from Morocco, currently based in Guadix, Spain.
 I build AI tools that actually work under real conditions — free APIs, rate limits, and all.
 
 **Right now:** [TriageFlow](https://github.com/wesper-01/TriageFlow) — an AI email triage engine
