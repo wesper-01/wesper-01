@@ -1,8 +1,10 @@
-// Builds the profile image in assets/ from DESIGN.md, in a light and a dark version.
+// Builds the profile image in assets/ from DESIGN.md, in a light and a dark version: the name as a
+// rotating 3D ASCII render (tools/ascii3d.mjs over tools/name-grid.json), then a short readout.
 // Run: node tools/build-sheets.mjs
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { scene, frame } from './ascii3d.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'assets');
@@ -31,60 +33,54 @@ function hex(L, C, h) {
 
 const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base64');
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
-const FONTS = face('Albert Sans', 400, 'albert-sans-latin-400-normal.woff2') + face('Albert Sans', 600, 'albert-sans-latin-600-normal.woff2')
-  + face('JetBrains Mono', 400, 'jetbrains-mono-latin-400-normal.woff2');
+const MONO = face('JetBrains Mono', 400, 'jetbrains-mono-latin-400-normal.woff2');
 
-const W = 960, X = 16, LOOP = 14;
+// The render: the name, extruded and ray-traced into characters, swinging left and right.
+const R = { cols: 150, rows: 27, frames: 40, loop: 6, depth: 6, yaw: 0.42, pitch: -0.2, sx: 0.62 };
+const NAME = scene(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/name-grid.json'), 'utf8')), R.depth);
+const FRAMES = Array.from({ length: R.frames }, (_, i) => {
+  const a = 2 * Math.PI * i / R.frames;
+  return frame(NAME, R.cols, R.rows, R.yaw * Math.sin(a), R.pitch + 0.05 * Math.cos(a), R.sx, R.sx * 1.7);
+});
+
+const W = 960, X = 8, FS = W / R.cols / 0.6, LH = FS * 1.02;
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const svg = (t, H, label, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
 <title>${label}</title>
-<style>${FONTS}
-text{font-family:"Albert Sans",ui-sans-serif,sans-serif}
-.name{font-weight:600;letter-spacing:-0.04em;fill:${t.ink}}
-.f{font-weight:400;fill:${t.muted}}
-.mono{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre}
-.off{fill:${t.rule}}.hex{fill:${t.muted}}.asc{fill:${t.ink}}.cmd{fill:${t.muted}}
-.up{animation:up .9s cubic-bezier(.2,.7,.2,1) backwards}
-@keyframes up{from{opacity:0;transform:translateY(12px)}}
-.ln{animation:print ${LOOP}s linear infinite backwards}
-@keyframes print{0%{opacity:0}1%,88%{opacity:1}92%,100%{opacity:0}}
-.cur{animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-@media (prefers-reduced-motion: reduce){.up,.ln,.cur{animation:none}}</style>
+<style>${MONO}
+text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre}
+.r{fill:${t.ink}}.k{fill:${t.muted}}.v{fill:${t.ink}}.d{fill:${t.rule}}
+.fr{opacity:0;animation:fr ${R.loop}s step-end infinite}.fr.f0{opacity:1}
+@keyframes fr{0%{opacity:1}${(100 / R.frames).toFixed(3)}%,100%{opacity:0}}
+.in{animation:in 1s cubic-bezier(.2,.7,.2,1) .3s backwards}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion: reduce){.fr,.in{animation:none}.fr{opacity:0}.fr.f0{opacity:1}}</style>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${body}
 </svg>`;
 
-// The sentence, as an xxd hex dump: offset, sixteen bytes in hex, then the bytes as ASCII.
-// Each line prints in turn (hex first, its ASCII a beat later), holds, clears and prints again.
-const ABOUT = 'Good with Python. Teaching myself C, assembly, malware analysis and red teaming.';
-function xxd(t, x, y, size) {
-  const cw = size * 0.6, lh = size * 1.75, bytes = [...Buffer.from(ABOUT, 'ascii')], esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-  let out = `<text class="mono cmd" x="${x}" y="${y}" font-size="${size * 0.82}">xxd about.txt</text>`, n = 0;
-  for (let i = 0; i < bytes.length; i += 16, n++) {
-    const row = bytes.slice(i, i + 16), ly = y + 18 + (n + 1) * lh, d = 0.9 + n * 0.45;
-    const hex = row.map(b => b.toString(16).padStart(2, '0')).join('').match(/.{1,4}/g).join(' ');
-    out += `<text class="mono ln" x="${x}" y="${ly}" font-size="${size}" style="animation-delay:${d}s"><tspan class="off">${i.toString(16).padStart(8, '0')}:</tspan><tspan class="hex" x="${x + cw * 10}">${hex}</tspan></text>`;
-    out += `<text class="mono ln asc" x="${x + cw * 51}" y="${ly}" font-size="${size}" style="animation-delay:${d + 0.2}s">${esc(String.fromCharCode(...row))}</text>`;
-  }
-  const cy = y + 18 + (n + 1) * lh;
-  out += `<g class="ln" style="animation-delay:${0.9 + n * 0.45}s"><rect class="cur" x="${x}" y="${cy - size * 0.82}" width="${cw}" height="${size * 1.05}" fill="${t.muted}"/></g>`;
-  return [out, cy];
-}
+const ROWS = [
+  ['good', 'python'],
+  ['basic', 'java, html, css'],
+  ['teaching myself', 'c, assembly, malware analysis, red teaming'],
+  ['speaks', 'arabic, french, english, spanish (learning)'],
+  ['based', 'guadix, spain. from morocco'],
+];
 
 const profile = t => {
-  const [dump, end] = xxd(t, X, 212, 17), rule = end + 40;
-  const H = rule + 104;
-  const facts = [['Engineering student', X], ['Guadix, Spain. From Morocco', 300], ['Arabic, French, English, Spanish (learning)', 580]];
-  return [H, `Rayane. ${ABOUT} Shown as a hex dump of about.txt that prints line by line. Engineering student. Based in Guadix, Spain, from Morocco. Speaks Arabic, French, English and Spanish (learning). Basic: Java, HTML, CSS.`, `
-<g class="up"><text class="name" x="${X - 8}" y="160" font-size="160">Rayane</text></g>
-${dump}
-<g class="up" style="animation-delay:.24s"><line x1="${X}" y1="${rule + .5}" x2="${W - X}" y2="${rule + .5}" stroke="${t.rule}"/>
-${facts.map(([v, x]) => `<text class="f" x="${x}" y="${rule + 38}" font-size="17">${v}</text>`).join('\n')}
-<text class="f" x="${X}" y="${rule + 70}" font-size="17">Basic: Java, HTML, CSS</text></g>`];
+  const top = 8, renderH = R.rows * LH, y0 = top + renderH + 34;
+  const frames = FRAMES.map((lines, i) => `<text class="r fr${i ? '' : ' f0'}" font-size="${FS.toFixed(2)}" style="animation-delay:${(i * R.loop / R.frames).toFixed(3)}s">${lines.map((l, j) => `<tspan x="0" y="${(top + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`).join('\n');
+  const info = ROWS.map(([k, v], i) => `<text font-size="17" y="${y0 + 30 + i * 30}"><tspan class="k" x="${X}">${k}</tspan><tspan class="v" x="${X + 190}">${v}</tspan></text>`).join('\n');
+  const H = y0 + 30 + ROWS.length * 30 + 10;
+  return [H, 'Rayane, engineering student, rendered as a rotating 3D ASCII render of the name. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
+${frames}
+<g class="in"><text class="k" x="${X}" y="${y0 - 6}" font-size="14">rayane, engineering student</text>
+<line x1="${X}" y1="${y0 + 6.5}" x2="${W - X}" y2="${y0 + 6.5}" stroke="${t.rule}"/>
+${info}</g>`];
 };
 
 for (const [mode, t] of Object.entries(THEMES)) {
   const [H, label, body] = profile(t);
   fs.writeFileSync(path.join(OUT, `profile-${mode}.svg`), svg(t, H, label, body));
 }
-console.log('built', fs.readdirSync(OUT).join(', '));
+console.log('built', fs.readdirSync(OUT).map(n => `${n} ${(fs.statSync(path.join(OUT, n)).size / 1024).toFixed(0)}KB`).join(', '));
