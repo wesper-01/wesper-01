@@ -1,5 +1,5 @@
 // Rasterize a word in a real typeface to a 0/1 grid (writes tools/name-grid.json). Needs Playwright.
-// Run: node tools/rasterize-name.cjs Rayane tools/fonts/albert-sans-latin-600-normal.woff2 22 > tools/name-grid.json
+// Run: node tools/rasterize-name.cjs Wesper tools/fonts/albert-sans-latin-600-normal.woff2 22 > tools/name-grid.json
 const { chromium } = require('playwright'); const fs = require('fs');
 (async () => {
   const [word, fontFile, rows] = [process.argv[2], process.argv[3], +process.argv[4]];

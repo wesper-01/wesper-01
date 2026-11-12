@@ -4,9 +4,9 @@ The locked system for this profile. The image in `assets/` is generated from thi
 
 ## System
 - Theme: custom, "Render" (vibe: "demoscene precision, nothing to prove")
-- Idea: the name is a real 3D object, ray-traced into ASCII. It is extruded from the letterforms, lit by one key light, and drawn only in characters (` .:-=+*%#@`, dark to bright), swinging slowly in space. Under it, a plain readout of who I am.
+- Idea: the handle is a real 3D object, ray-traced into ASCII. It is extruded from the letterforms, lit by one key light, and drawn only in characters (` .:-=+*%#@`, dark to bright), swinging slowly in space. Under it, a plain readout of who I am.
 - Axes: light and dark/mono/neutral, posture: characters on GitHub's own background
-- Signature: the rotating ASCII render of `Rayane`.
+- Signature: the spinning ASCII render of `Wesper`. The profile goes by the handle; no real name appears anywhere.
 
 ## Tokens
 Light, shown on GitHub's light theme:
@@ -37,20 +37,20 @@ Shared:
 ```
 
 ## The render
-- Source: `Rayane` set in Albert Sans 600, rasterized to a 79 by 22 grid (`tools/name-grid.json`, made by `tools/rasterize-name.cjs`), extruded 6 deep into voxels.
+- Source: `Wesper` set in Albert Sans 600, rasterized to an 86 by 22 grid (`tools/name-grid.json`, made by `tools/rasterize-name.cjs`), extruded 7 deep into voxels.
 - Each character cell casts one orthographic ray (voxel traversal, `tools/ascii3d.mjs`). The face it hits is lit by one light from the upper left front; brightness picks the character.
-- 150 columns by 27 rows, sized so it spans the image. Yaw swings ±0.42 rad and pitch breathes around -0.2 rad over 40 frames.
+- 150 columns by 27 rows, sized so it spans the image.
 - It is the only graphic. Never a second render, never ASCII borders, banners or decorative text art.
 
 ## Rules
 - One family, JetBrains Mono, for everything. The readout at 17px, its caption at 14px.
-- The readout is label and value: labels in `muted`, values in `ink`, lowercase, one hairline above. It states levels honestly: good, basic, teaching myself.
+- The readout comes after the name and is label and value, starting with my role: labels in `muted`, values in `ink`, lowercase, one hairline above. It states levels honestly: good, basic, teaching myself.
 - No colour. Ink, muted, one hairline.
 - One left edge. Nothing centred.
 - No projects until there is one worth leading with. No emoji, photos, icons, boxes, middle-dot lists, em dashes, invented numbers or slogans.
 
 ## Motion
-- The render plays its 40 frames over 6 seconds, looping, frame by frame (`step-end`), so it moves like a real-time renderer.
+- The render runs on a 12 second loop, frame by frame (`step-end`), like a real-time renderer: it holds facing you for 6 seconds with a slow drift (yaw ±0.18 rad, a new frame every 0.4s), makes one full eased turn in 2 seconds (40 frames, tilting slightly as it goes, the fixed light raking across its faces), then settles and drifts until the loop restarts.
 - The readout fades up 8px once, on load. Then it runs Matrix-style on a 12 second loop: columns of binary rain fall behind the values (brightest at the head, fading up the tail, 2.4 to 5 seconds a fall); every character starts as a flickering bit and locks into its letter left to right, rows 0.28s apart, with a little scatter. At about 10.6 seconds it scrambles back into bits and decodes again. Every digit on screen is a real bit of the readout's own text.
 - Under `prefers-reduced-motion: reduce`, the render holds its first frame and the readout shows as plain text with no rain and no flicker.
 

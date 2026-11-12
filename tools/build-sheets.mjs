@@ -35,13 +35,20 @@ const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
 const MONO = face('JetBrains Mono', 400, 'jetbrains-mono-latin-400-normal.woff2');
 
-// The render: the name, extruded and ray-traced into characters, swinging left and right.
-const R = { cols: 150, rows: 27, frames: 40, loop: 6, depth: 6, yaw: 0.42, pitch: -0.2, sx: 0.62 };
+// The render: the name, extruded and ray-traced into characters. It holds facing you with a slow drift,
+// then makes one full eased turn, the fixed light raking across its faces, and settles again.
+const R = { cols: 150, rows: 27, depth: 7, drift: 0.18, pitch: -0.2, sx: 0.66, spinAt: 6, spinFor: 2, hold: 0.4, spinStep: 0.05, loop: 12 };
 const NAME = scene(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/name-grid.json'), 'utf8')), R.depth);
-const FRAMES = Array.from({ length: R.frames }, (_, i) => {
-  const a = 2 * Math.PI * i / R.frames;
-  return frame(NAME, R.cols, R.rows, R.yaw * Math.sin(a), R.pitch + 0.05 * Math.cos(a), R.sx, R.sx * 1.7);
-});
+const ease = p => p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2;
+const pose = t => {
+  const p = Math.min(1, Math.max(0, (t - R.spinAt) / R.spinFor));
+  return [R.drift * Math.sin(2 * Math.PI * t / R.loop) + 2 * Math.PI * ease(p), R.pitch + 0.05 * Math.cos(2 * Math.PI * t / R.loop) - 0.16 * Math.sin(Math.PI * p)];
+};
+const TIMES = [];
+for (let t = 0; t < R.spinAt - 1e-9; t += R.hold) TIMES.push([t, Math.min(t + R.hold, R.spinAt)]);
+for (let t = R.spinAt; t < R.spinAt + R.spinFor - 1e-9; t += R.spinStep) TIMES.push([t, t + R.spinStep]);
+for (let t = R.spinAt + R.spinFor; t < R.loop - 1e-9; t += R.hold) TIMES.push([t, Math.min(t + R.hold, R.loop)]);
+const FRAMES = TIMES.map(([t0, t1]) => { const [yaw, pitch] = pose(t0); return { t0, t1, lines: frame(NAME, R.cols, R.rows, yaw, pitch, R.sx, R.sx * 1.7) }; });
 
 // The readout, Matrix-style. Binary rain falls through it; every character starts as a flickering
 // bit and locks into its letter as the rain passes, left to right with a little scatter. It holds,
@@ -72,8 +79,6 @@ const svg = (t, H, label, body) => `<svg xmlns="http://www.w3.org/2000/svg" widt
 <style>${MONO}
 text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre}
 .r{fill:${t.ink}}.k{fill:${t.muted}}.v{fill:${t.ink}}.d{fill:${t.rule}}
-.fr{opacity:0;animation:fr ${R.loop}s step-end infinite}.fr.f0{opacity:1}
-@keyframes fr{0%{opacity:1}${(100 / R.frames).toFixed(3)}%,100%{opacity:0}}
 .in{animation:in 1s cubic-bezier(.2,.7,.2,1) .3s backwards}
 @keyframes in{from{opacity:0;transform:translateY(8px)}}
 ${DECODE_CSS}
@@ -83,12 +88,13 @@ ${DECODE_CSS}
 .rain{fill:${t.muted};animation:fall linear infinite}
 @keyframes fall{from{transform:translateY(var(--a))}to{transform:translateY(var(--b))}}
 .lock{fill:${t.ink}}
-@media (prefers-reduced-motion: reduce){.fr,.in,.w,.fl,.rain{animation:none}.fr{opacity:0}.fr.f0{opacity:1}.rain,.scr{display:none}.lock{opacity:1}}</style>
+@media (prefers-reduced-motion: reduce){.fr,.in,.w,.fl,.rain{animation:none!important}.fr{opacity:0}.fr.f0{opacity:1}.rain,.scr{display:none}.lock{opacity:1}}</style>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${body}
 </svg>`;
 
 const ROWS = [
+  ['role', 'engineering student'],
   ['good', 'python'],
   ['basic', 'java, html, css'],
   ['teaching myself', 'c, assembly, malware analysis, red teaming'],
@@ -98,7 +104,7 @@ const ROWS = [
 
 const profile = t => {
   const top = 8, renderH = R.rows * LH, y0 = top + renderH + 34;
-  const frames = FRAMES.map((lines, i) => `<text class="r fr${i ? '' : ' f0'}" font-size="${FS.toFixed(2)}" style="animation-delay:${(i * R.loop / R.frames).toFixed(3)}s">${lines.map((l, j) => `<tspan x="0" y="${(top + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`).join('\n');
+  const frames = FRAMES.map(({ t0, t1, lines }, i) => `<text class="r fr w${i ? '' : ' f0'}" font-size="${FS.toFixed(2)}" style="animation-name:${window_(t0, t1)}">${lines.map((l, j) => `<tspan x="0" y="${(top + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`).join('\n');
   const vx = X + 190, cw = 17 * 0.6, areaH = ROWS.length * 30 + 16, areaTop = y0 + 8;
   const ALL = bitsOf(ROWS.map(r => r[1]).join(''));
   // the rain: columns of real bits falling behind the values, brightest at the head
@@ -123,10 +129,9 @@ const profile = t => {
     return row;
   }).join('\n');
   const H = y0 + 30 + ROWS.length * 30 + 10;
-  return [H, 'Rayane, engineering student, rendered as a rotating 3D ASCII render of the name. Each value below decodes out of falling binary, Matrix-style. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
+  return [H, 'Wesper, as a 3D ASCII render of the name that holds, spins a full turn, and settles. Each value below decodes out of falling binary, Matrix-style. Engineering student. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
 ${frames}
-<g class="in"><text class="k" x="${X}" y="${y0 - 6}" font-size="14">rayane, engineering student</text>
-<line x1="${X}" y1="${y0 + 6.5}" x2="${W - X}" y2="${y0 + 6.5}" stroke="${t.rule}"/>
+<g class="in"><line x1="${X}" y1="${y0 + 6.5}" x2="${W - X}" y2="${y0 + 6.5}" stroke="${t.rule}"/>
 ${info}</g>`];
 };
 
