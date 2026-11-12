@@ -1,4 +1,4 @@
-// Builds the profile images in assets/ from DESIGN.md, in a light and a dark version.
+// Builds the profile image in assets/ from DESIGN.md, in a light and a dark version.
 // Run: node tools/build-sheets.mjs
 import fs from 'node:fs';
 import path from 'node:path';
@@ -31,81 +31,38 @@ function hex(L, C, h) {
 
 const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base64');
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
-const FONTS = face('Michroma', 400, 'michroma-latin-400-normal.woff2') + face('Albert Sans', 400, 'albert-sans-latin-400-normal.woff2') + face('Albert Sans', 500, 'albert-sans-latin-500-normal.woff2');
-const ARABIC = face('IBM Plex Sans Arabic', 500, 'ibm-plex-sans-arabic-arabic-500-normal.woff2');
+const FONTS = face('Albert Sans', 400, 'albert-sans-latin-400-normal.woff2') + face('Albert Sans', 600, 'albert-sans-latin-600-normal.woff2');
 
-const W = 960, X = 4;
-const svg = (t, H, label, body, arabic = false) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
+const W = 960, X = 16;
+const svg = (t, H, label, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
 <title>${label}</title>
-<style>${FONTS}${arabic ? ARABIC : ''}
+<style>${FONTS}
 text{font-family:"Albert Sans",ui-sans-serif,sans-serif}
-.name{font-family:"Michroma",sans-serif;letter-spacing:0.16em;fill:${t.ink}}
-.h{font-family:"Michroma",sans-serif;letter-spacing:0.14em;fill:${t.ink}}
+.name{font-weight:600;letter-spacing:-0.04em;fill:${t.ink}}
 .b{font-weight:400;fill:${t['ink-2']}}
-.l{font-weight:500;fill:${t.muted}}
-.v{font-weight:500;fill:${t.ink}}
-.ar{font-family:"IBM Plex Sans Arabic",sans-serif;font-weight:500;fill:${t.ink}}
-.scan{animation:scan 6s cubic-bezier(.65,0,.35,1) infinite}
-@keyframes scan{0%{transform:translateX(var(--from));opacity:0}6%{opacity:1}55%,100%{transform:none;opacity:1}}
-.pulse{opacity:0;animation:travel 5.2s cubic-bezier(.55,0,.75,1) infinite}
-@keyframes travel{0%{opacity:0;transform:translateX(0)}8%,84%{opacity:1}94%,100%{opacity:0;transform:translateX(var(--dist))}}
-@media (prefers-reduced-motion: reduce){.scan,.pulse{animation:none}.pulse{opacity:0}}</style>
+.f{font-weight:400;fill:${t.muted}}
+.up{animation:up .9s cubic-bezier(.2,.7,.2,1) backwards}
+@keyframes up{from{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion: reduce){.up{animation:none}}</style>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${body}
 </svg>`;
-const rule = (t, y, x1 = X, x2 = W - X) => `<line x1="${x1}" y1="${y + .5}" x2="${x2}" y2="${y + .5}" stroke="${t.rule}"/>`;
 
-const pages = {
-  // Header: the name, crossed by the red scan line; who I am; where I'm from and what I speak.
-  header: t => {
-    const H = 318, nameEnd = 452;
-    const langs = [['ar', 'العربية', 50], ['v', 'Français', 66], ['v', 'English', 58], ['v', 'Español', 62]];
-    let lx = 520, speaks = '';
-    langs.forEach(([c, w, width]) => { speaks += `<text class="${c}" x="${lx}" y="288" font-size="17">${w}</text>`; lx += width + 18; });
-    speaks += `<text class="l" x="${lx - 12}" y="288" font-size="17">(learning)</text>`;
-    return [H, 'RAYANE. Engineering student. Good with Python, teaching myself C, assembly, malware analysis and red teaming. Based in Guadix, Spain. From Morocco. Speaks Arabic, French, English and Spanish (learning).', `
-<text class="name" x="${X - 4}" y="96" font-size="62">RAYANE</text>
-<rect class="scan" x="${nameEnd}" y="42" width="2" height="66" fill="${t.signal}" style="--from:${-nameEnd}px"/>
-<rect x="${X}" y="126" width="56" height="2" fill="${t.signal}"/>
-<text class="b" x="${X}" y="172" font-size="21">Engineering student. Good with Python, teaching myself</text>
-<text class="b" x="${X}" y="200" font-size="21">C, assembly, malware analysis and red teaming.</text>
-${rule(t, 236)}
-<text class="l" x="${X}" y="262" font-size="15">Based in</text><text class="v" x="${X}" y="288" font-size="17">Guadix, Spain</text>
-<text class="l" x="260" y="262" font-size="15">From</text><text class="v" x="260" y="288" font-size="17">Morocco</text>
-<text class="l" x="520" y="262" font-size="15">Speaks</text>${speaks}`, true];
-  },
-
-  // Stack: one line from high level to the machine; the red pulse runs from Python down to Assembly.
-  stack: t => {
-    const H = 330, ax = 140, x1 = X + 48, x2 = W - X - 48;
-    const pts = [['HTML, CSS', 'basic', 0], ['Python', 'good', 0.24], ['Java', 'basic', 0.46], ['C', 'learning', 0.72], ['Assembly', 'learning', 1]];
-    let marks = '', pyX = 0;
-    for (const [name, status, at] of pts) {
-      const x = x1 + (x2 - x1) * at;
-      if (status === 'good') pyX = x;
-      marks += status === 'good' ? `<circle cx="${x}" cy="${ax}" r="7" fill="${t.ink}"/>`
-        : status === 'basic' ? `<circle cx="${x}" cy="${ax}" r="6.25" fill="${t.paper}" stroke="${t.ink}" stroke-width="1.5"/>`
-        : `<circle cx="${x}" cy="${ax}" r="3.5" fill="${t.muted}"/>`;
-      marks += `<text class="v" x="${x}" y="${ax - 24}" font-size="18" text-anchor="middle">${name}</text>
-<text class="l" x="${x}" y="${ax + 34}" font-size="15" text-anchor="middle">${status}</text>`;
-    }
-    return [H, 'Down the stack, from high level to the machine. HTML and CSS: basic. Python: good. Java: basic. C: learning. Assembly: learning. A red pulse runs from Python down to Assembly. Also teaching myself: malware analysis and red teaming.', `
-<text class="h" x="${X}" y="36" font-size="20">DOWN THE STACK</text>
-<line x1="${X}" y1="${ax + .5}" x2="${W - X}" y2="${ax + .5}" stroke="${t.rule}"/>
-${marks}
-<circle class="pulse" cx="${pyX}" cy="${ax}" r="3.5" fill="${t.signal}" style="--dist:${(x2 - pyX).toFixed(0)}px"/>
-<text class="l" x="${X}" y="${ax + 74}" font-size="15">High level</text>
-<text class="l" x="${W - X}" y="${ax + 74}" font-size="15" text-anchor="end">Machine</text>
-${rule(t, 244)}
-<text class="l" x="${X}" y="282" font-size="15">Teaching myself</text>
-<text class="v" x="160" y="282" font-size="18">Malware analysis</text>
-<text class="v" x="160" y="310" font-size="18">Red teaming</text>`];
-  },
+// The whole profile: the name, one sentence, the facts.
+const profile = t => {
+  const H = 440;
+  const facts = [['Engineering student', X], ['Guadix, Spain. From Morocco', 300], ['Arabic, French, English, Spanish (learning)', 580]];
+  return [H, 'Rayane. Good with Python. Teaching myself C, assembly, malware analysis and red teaming. Engineering student. Based in Guadix, Spain, from Morocco. Speaks Arabic, French, English and Spanish (learning). Basic: Java, HTML, CSS.', `
+<g class="up"><text class="name" x="${X - 8}" y="170" font-size="168">Rayane</text></g>
+<g class="up" style="animation-delay:.12s"><text class="b" x="${X}" y="238" font-size="26">Good with Python. Teaching myself C, assembly,</text>
+<text class="b" x="${X}" y="272" font-size="26">malware analysis and red teaming.</text></g>
+<g class="up" style="animation-delay:.24s"><line x1="${X}" y1="340.5" x2="${W - X}" y2="340.5" stroke="${t.rule}"/>
+${facts.map(([v, x]) => `<text class="f" x="${x}" y="378" font-size="17">${v}</text>`).join('\n')}
+<text class="f" x="${X}" y="410" font-size="17">Basic: Java, HTML, CSS</text></g>`];
 };
 
-for (const [name, page] of Object.entries(pages))
-  for (const [mode, t] of Object.entries(THEMES)) {
-    const [H, label, body, arabic] = page(t);
-    fs.writeFileSync(path.join(OUT, `${name}-${mode}.svg`), svg(t, H, label, body, arabic));
-  }
+for (const [mode, t] of Object.entries(THEMES)) {
+  const [H, label, body] = profile(t);
+  fs.writeFileSync(path.join(OUT, `profile-${mode}.svg`), svg(t, H, label, body));
+}
 console.log('built', fs.readdirSync(OUT).join(', '));
