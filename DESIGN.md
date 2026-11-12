@@ -3,10 +3,10 @@
 The locked system for this profile. The image in `assets/` is generated from this file by `tools/build-sheets.mjs`, which reads the token blocks below. Change it on purpose; the file is the rule.
 
 ## System
-- Theme: custom, "Statement" (vibe: "a name, a sentence, nothing to prove")
-- Idea: say it once, at full size. A huge name, one honest sentence, three plain facts. No graphics, no gimmicks; the confidence is in what's left out.
+- Theme: custom, "Statement" (vibe: "a name, a hex dump, nothing to prove")
+- Idea: say it once, at full size. A huge name, then the one sentence about me shown the way I'm learning to read files: as an `xxd` hex dump, printing line by line. The ASCII column is the sentence; the bytes are its real bytes.
 - Axes: light and dark/grotesk-sans/neutral, posture: type on GitHub's own background
-- Signature: the name, set huge and tight.
+- Signature: the name set huge and tight, over a live hex dump of `about.txt`.
 
 ## Tokens
 Light, shown on GitHub's light theme:
@@ -34,20 +34,23 @@ Shared:
 :root {
   --font-display: "Albert Sans", ui-sans-serif, sans-serif;
   --font-body: "Albert Sans", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;  /* the hex dump only */
 }
 ```
 
 ## Rules
-- Three sizes, far apart: the name at 168px (600, tracked -0.04em), the sentence at 26px (400), the facts at 17px (400, `muted`). Nothing in between.
-- The sentence says what I'm good at and what I'm teaching myself, in my own words. It is the only claim on the page.
+- Three sizes, far apart: the name at 160px (Albert Sans 600, tracked -0.04em), the dump at 17px (JetBrains Mono), the facts at 17px (Albert Sans 400, `muted`).
+- The sentence says what I'm good at and what I'm teaching myself, in my own words. It is the only claim on the page, and it appears only inside the dump.
+- The dump is real `xxd` output of that sentence: offset in `rule`, hex in `muted`, ASCII in `ink`, sixteen bytes a line. Never fake bytes, never decorative ASCII elsewhere.
 - Facts sit in one row of columns under a single hairline. No labels unless a fact needs one.
-- No colour, no lines but that one hairline, no graphics, no photos, no icons, no boxes.
+- No colour, no lines but one hairline under the dump, no graphics, no photos, no icons, no boxes.
 - One left edge. Nothing centred.
 - No projects until there is one worth leading with. No emoji, ASCII art, middle-dot lists, em dashes, eyebrows, invented numbers or slogans.
 
 ## Motion
-- One reveal, once, on load: the name, then the sentence, then the facts fade up 12px, 120ms apart. It does not loop.
-- `transform` and `opacity` only. Under `prefers-reduced-motion: reduce` everything is simply there.
+- On load, the name and the facts fade up 12px, once.
+- The dump prints line by line (hex first, its ASCII 0.2s later, 0.45s per line), a block cursor blinks under it, the whole dump holds, clears and prints again every 14 seconds.
+- `opacity` and `transform` only. Under `prefers-reduced-motion: reduce` everything is simply there and nothing blinks.
 
 ## Exports
-`assets/profile-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. Albert Sans is vendored in `tools/fonts/` (SIL Open Font License) and embedded in the image.
+`assets/profile-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. Albert Sans and JetBrains Mono are vendored in `tools/fonts/` (SIL Open Font License) and embedded in the image.
