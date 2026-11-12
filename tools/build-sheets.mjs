@@ -70,16 +70,16 @@ ${c}`;
 {
   const H = 324;
   const body = `
-<text class="d" x="60" y="98" font-size="40">NOW BUILDING</text>
+<text class="d" x="60" y="98" font-size="40">PROJECTS</text>
 <line class="h" x1="60" y1="128" x2="${W - 60}" y2="128"/>
 <text class="m" x="60" y="170" font-size="14">P-01</text>
 <text class="d" x="150" y="174" font-size="30">decided</text>
 <text class="b" x="150" y="210" font-size="18">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
 <text class="b" x="150" y="236" font-size="18">You choose the goal, it makes the calls.</text>
 <line class="hr" x1="700.5" y1="148" x2="700.5" y2="244"/>
-<text class="l" x="724" y="166" font-size="13">Status</text><text class="v" x="724" y="188" font-size="16">In progress</text>
+<text class="l" x="724" y="166" font-size="13">Built with</text><text class="v" x="724" y="188" font-size="16">HTML</text>
 <text class="l" x="724" y="218" font-size="13">Licence</text><text class="v" x="724" y="240" font-size="16">Open source</text>`;
-  fs.writeFileSync(`${OUT}/now.svg`, sheet(H, 'Now building: decided. Picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. In progress, open source.', body, '02'));
+  fs.writeFileSync(`${OUT}/projects.svg`, sheet(H, 'Projects: decided. Picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source.', body, '02'));
 }
 
 // Sheet 03: the stack, drawn in section
