@@ -1,124 +1,133 @@
-// Builds the README's Blueprint sheets as self-contained SVGs (fonts embedded).
+// Builds the profile sheets in assets/ from DESIGN.md. Run: node tools/build-sheets.mjs
 import fs from 'node:fs';
-const S = '/tmp/claude-0/-home-user-wesper-01/83c67255-3306-5fd8-b299-dd7ade7c793d/scratchpad/fonts';
-const OUT = '/home/user/wesper-01/assets';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const OUT = path.join(ROOT, 'assets');
 fs.mkdirSync(OUT, { recursive: true });
-const font = (pkg, file) => fs.readFileSync(`${S}/fontsource-${pkg}-5.3.0/package/files/${file}`).toString('base64');
 
-// oklch -> hex
-function oklch(L, C, h, a) {
-  const hr = h * Math.PI / 180, A = C * Math.cos(hr), B = C * Math.sin(hr);
+// Tokens come from DESIGN.md, nowhere else.
+const design = fs.readFileSync(path.join(ROOT, 'DESIGN.md'), 'utf8');
+const tok = {};
+for (const [, name, L, C, H] of design.matchAll(/--color-([\w-]+):\s*oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)/g)) tok[name] = hex(+L / 100, +C, +H);
+const grout = +(design.match(/--grout:\s*(\d+)px/) || [, 6])[1];
+
+function hex(L, C, h) {
+  const r = h * Math.PI / 180, A = C * Math.cos(r), B = C * Math.sin(r);
   const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.2914855480 * B) ** 3;
-  const lin = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
-  const g = v => { v = Math.min(1, Math.max(0, v)); v = v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055; return Math.round(v * 255).toString(16).padStart(2, '0'); };
-  return '#' + lin.map(g).join('') + (a !== undefined ? Math.round(a * 255).toString(16).padStart(2, '0') : '');
+  return '#' + [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]
+    .map(v => { v = Math.min(1, Math.max(0, v)); v = v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055; return Math.round(v * 255).toString(16).padStart(2, '0'); }).join('');
 }
-const T = {
-  paper: oklch(.35, .105, 256), paper2: oklch(.31, .10, 257), paper3: oklch(.265, .095, 258),
-  ink: oklch(.97, .012, 240), ink2: oklch(.90, .025, 242), muted: oklch(.80, .045, 244),
-  rule: oklch(.93, .02, 240, .85), rule2: oklch(.93, .02, 240, .32), accentInk: oklch(.33, .105, 256),
-};
 
-const style = `
-@font-face{font-family:"Chakra Petch";font-weight:600;src:url(data:font/woff2;base64,${font('chakra-petch', 'chakra-petch-latin-600-normal.woff2')}) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:400;src:url(data:font/woff2;base64,${font('ibm-plex-sans', 'ibm-plex-sans-latin-400-normal.woff2')}) format("woff2")}
-@font-face{font-family:"IBM Plex Sans";font-weight:500;src:url(data:font/woff2;base64,${font('ibm-plex-sans', 'ibm-plex-sans-latin-500-normal.woff2')}) format("woff2")}
-@font-face{font-family:"IBM Plex Mono";font-weight:500;src:url(data:font/woff2;base64,${font('ibm-plex-mono', 'ibm-plex-mono-latin-500-normal.woff2')}) format("woff2")}
-:root{--paper:${T.paper};--paper-2:${T.paper2};--paper-3:${T.paper3};--ink:${T.ink};--ink-2:${T.ink2};--muted:${T.muted};--rule:${T.rule};--rule-2:${T.rule2};--accent-ink:${T.accentInk};
---font-display:"Chakra Petch",ui-sans-serif,sans-serif;--font-body:"IBM Plex Sans",ui-sans-serif,sans-serif;--font-outlier:"IBM Plex Mono",ui-monospace,monospace}
-.d{font-family:var(--font-display);font-weight:600;letter-spacing:-0.012em;fill:var(--ink)}
-.b{font-family:var(--font-body);font-weight:400;fill:var(--ink-2)}
-.l{font-family:var(--font-body);font-weight:500;fill:var(--muted)}
-.v{font-family:var(--font-body);font-weight:500;fill:var(--ink)}
-.m{font-family:var(--font-outlier);font-weight:500;fill:var(--ink)}
-.k{fill:none;stroke:var(--rule);stroke-width:1}
-.k2{fill:none;stroke:var(--rule-2);stroke-width:1}
-.h{stroke:var(--rule);stroke-width:2}
-.hr{stroke:var(--rule);stroke-width:1}
-.inv{fill:var(--accent-ink)}`;
+const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base64');
+const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
+const fonts = {
+  body: face('Rethink Sans', 400, 'rethink-sans-latin-400-normal.woff2') + face('Rethink Sans', 500, 'rethink-sans-latin-500-normal.woff2') + face('Rethink Sans', 800, 'rethink-sans-latin-800-normal.woff2'),
+  tiny: face('Tiny5', 400, 'tiny5-latin-400-normal.woff2'),
+  kufi: face('Noto Kufi Arabic', 700, 'noto-kufi-arabic-arabic-700-normal.woff2'),
+};
+const css = (need) => `${need.map(n => fonts[n]).join('')}
+.h{font-family:"Rethink Sans",sans-serif;font-weight:800;letter-spacing:-0.02em;fill:${tok.ink}}
+.b{font-family:"Rethink Sans",sans-serif;font-weight:400;fill:${tok['ink-2']}}
+.l{font-family:"Rethink Sans",sans-serif;font-weight:500;fill:${tok.muted}}
+.v{font-family:"Rethink Sans",sans-serif;font-weight:500;fill:${tok.ink}}
+.t{font-family:"Tiny5",monospace;font-weight:400;fill:${tok.ink}}
+.ar{font-family:"Noto Kufi Arabic",sans-serif;font-weight:700;fill:${tok.green}}`;
 
 const W = 960;
-const sheet = (H, title, body, n) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}">
-<title>${title}</title>
-<style>${style}</style>
-<rect width="${W}" height="${H}" style="fill:var(--paper)"/>
-<rect class="k" x="20.5" y="20.5" width="${W - 41}" height="${H - 41}"/>
-<rect class="k2" x="25.5" y="25.5" width="${W - 51}" height="${H - 51}"/>
+const svg = (H, label, need, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
+<title>${label}</title>
+<style>${css(need)}</style>
+<rect width="${W}" height="${H}" fill="${tok.paper}"/>
 ${body}
-${n ? `<text class="m" x="${W - 52}" y="${H - 44}" font-size="12" text-anchor="end" style="fill:var(--muted)">sheet ${n} of 03</text>` : ''}
 </svg>`;
 
-// Sheet 01: the hero and title block
-{
-  const H = 380, top = 262, x0 = 26, cells = [['Based in', 'Guadix, Spain', 170], ['From', 'Morocco', 130], ['Age', '20', 80], ['Speaks', 'Arabic, French, English, Spanish (learning)', 418]];
-  let x = x0, c = '';
-  for (const [k, v, w] of cells) {
-    c += `<text class="l" x="${x + 20}" y="${top + 30}" font-size="13">${k}</text><text class="v" x="${x + 20}" y="${top + 56}" font-size="16">${v}</text>`;
-    x += w; c += `<line class="hr" x1="${x + .5}" y1="${top}" x2="${x + .5}" y2="${H - 26}"/>`;
+// The tile: the bytes of a name fill one octant of a 16 x 16 grid, mirrored eight ways.
+function tile(name, x, y, size) {
+  const bits = [...Buffer.from(name, 'ascii')].flatMap(b => [7, 6, 5, 4, 3, 2, 1, 0].map(i => (b >> i) & 1));
+  const N = 16, half = 8, cell = size / N, gap = Math.max(1, size / 150);
+  const glaze = r => r <= 1 ? tok.cobalt : r <= 4 ? tok.green : r <= 6 ? tok.ochre : tok.ink;
+  let out = `<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="${tok.grout}"/>`, k = 0;
+  const on = new Map();
+  for (let a = 0; a < half; a++) for (let b = a; b < half; b++) on.set(`${a},${b}`, bits[k++ % bits.length]);
+  for (let row = 0; row < N; row++) for (let col = 0; col < N; col++) {
+    const a = col < half ? half - 1 - col : col - half, b = row < half ? half - 1 - row : row - half;
+    const lit = on.get(a <= b ? `${a},${b}` : `${b},${a}`);
+    out += `<rect x="${(x + col * cell + gap / 2).toFixed(2)}" y="${(y + row * cell + gap / 2).toFixed(2)}" width="${(cell - gap).toFixed(2)}" height="${(cell - gap).toFixed(2)}" fill="${lit ? glaze(Math.max(a, b)) : tok.paper}"/>`;
   }
-  c += `<text class="l" x="${x + 20}" y="${top + 30}" font-size="13">Sheet</text><text class="m" x="${x + 20}" y="${top + 56}" font-size="15">01/03</text>`;
-  const body = `
-<line class="hr" x1="64" y1="68.5" x2="520" y2="68.5"/>
-<text class="d" x="60" y="164" font-size="104">RAYANE</text>
-<text class="b" x="64" y="214" font-size="22">Engineering student. Python first, working my way down the stack.</text>
-<line class="h" x1="26" y1="${top}" x2="${W - 26}" y2="${top}"/>
-${c}`;
-  fs.writeFileSync(`${OUT}/header.svg`, sheet(H, 'Rayane. Engineering student. Python first, working my way down the stack. Based in Guadix, Spain. From Morocco. Age 20. Speaks Arabic, French, English, Spanish (learning).', body, ''));
+  return out;
 }
+const bytes = s => [...Buffer.from(s, 'ascii')].map(b => b.toString(16)).join(' ');
 
-// Sheet 02: what I am building
+// Header: the tile, the wordmark, the name in two scripts, the languages in their own.
 {
-  const H = 324;
+  const H = 420, T = 300, tx = 56, ty = 52;
+  const langs = [['ar', 'العربية'], ['v', 'Français'], ['v', 'English'], ['v', 'Español']];
+  let lx = 400, row = '';
+  for (const [c, w] of langs) {
+    const width = c === 'ar' ? 74 : w.length * 9.6;
+    row += `<text class="${c}" x="${lx}" y="${H - 58}" font-size="17">${w}</text>`;
+    lx += width + 26;
+  }
+  row += `<text class="l" x="${lx - 18}" y="${H - 58}" font-size="17">(learning)</text>`;
   const body = `
-<text class="d" x="60" y="98" font-size="40">PROJECTS</text>
-<line class="h" x1="60" y1="128" x2="${W - 60}" y2="128"/>
-<text class="m" x="60" y="170" font-size="14">P-01</text>
-<text class="d" x="150" y="174" font-size="30">decided</text>
-<text class="b" x="150" y="210" font-size="18">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
-<text class="b" x="150" y="236" font-size="18">You choose the goal, it makes the calls.</text>
-<line class="hr" x1="700.5" y1="148" x2="700.5" y2="244"/>
-<text class="l" x="724" y="166" font-size="13">Built with</text><text class="v" x="724" y="188" font-size="16">HTML</text>
-<text class="l" x="724" y="218" font-size="13">Licence</text><text class="v" x="724" y="240" font-size="16">Open source</text>`;
-  fs.writeFileSync(`${OUT}/projects.svg`, sheet(H, 'Projects: decided. Picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source.', body, '02'));
+${tile('wesper', tx, ty, T)}
+<text class="t" x="${tx}" y="${ty + T + 34}" font-size="20">${bytes('wesper')}</text>
+<text class="l" x="${tx + 200}" y="${ty + T + 32}" font-size="15">wesper, as bytes</text>
+<text class="t" x="396" y="146" font-size="96">WESPER</text>
+<text class="h" x="400" y="210" font-size="34">Rayane</text>
+<text class="ar" x="${400 + 132}" y="212" font-size="32">ريان</text>
+<text class="b" x="400" y="258" font-size="20">Engineering student from Morocco, living in Guadix, Spain.</text>
+<text class="b" x="400" y="288" font-size="20">Python first, working my way down the stack.</text>
+<text class="l" x="400" y="${H - 92}" font-size="15">Speaks</text>
+${row}`;
+  fs.writeFileSync(`${OUT}/header.svg`, svg(H, `wesper. Rayane, ريان. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). The tile is the bytes of wesper, ${bytes('wesper')}, mirrored eight ways.`, ['body', 'tiny', 'kufi'], body));
 }
 
-// Sheet 03: the stack, drawn in section
+// Stack: each layer glazed by status.
 {
   const rows = [
-    ['06', 'AI systems', 'Apps that keep working when an API fails', 'next'],
-    ['05', 'Web', 'HTML, CSS', 'learning'],
-    ['04', 'High-level', 'Python, what I build with', 'solid'],
-    ['03', 'High-level', 'Java', 'learning'],
-    ['02', 'Systems', 'C, the basics', 'curious'],
-    ['01', 'Machine', 'Assembly, the basics', 'curious'],
+    ['AI systems', 'Apps that keep working when an API fails', 'next'],
+    ['Web', 'HTML, CSS', 'learning'],
+    ['High-level', 'Python, what I build with', 'solid'],
+    ['High-level', 'Java', 'learning'],
+    ['Systems', 'C, the basics', 'curious'],
+    ['Machine', 'Assembly, the basics', 'curious'],
   ];
-  const X = 60, R = W - 60, top = 196, rh = 58, cols = [X, X + 80, X + 270, X + 640, R - 90, R];
-  const secX = cols[4];
+  const glaze = { solid: [tok.green, tok.paper], learning: [tok.ochre, tok.ink], curious: [tok.cobalt, tok.paper], next: [null, tok.ink] };
+  const X = 56, R = W - 56, top = 168, rh = 54, secW = 96, bandR = R - secW - grout;
   let b = `
-<text class="d" x="60" y="98" font-size="40">THE STACK, IN SECTION</text>
-<text class="b" x="62" y="136" font-size="18">Top is furthest from the machine. I'm working my way down.</text>
-<text class="l" x="${cols[0]}" y="${top - 16}" font-size="13">Level</text>
-<text class="l" x="${cols[1]}" y="${top - 16}" font-size="13">Layer</text>
-<text class="l" x="${cols[2]}" y="${top - 16}" font-size="13">What I know</text>
-<text class="l" x="${cols[3] + 20}" y="${top - 16}" font-size="13">Status</text>
-<line class="h" x1="${X}" y1="${top}" x2="${secX - 20}" y2="${top}"/>`;
-  rows.forEach(([n, layer, what, status], i) => {
-    const y = top + i * rh, hi = status === 'solid', cls = hi ? ' inv' : '';
-    if (hi) b += `<rect x="${X}" y="${y}" width="${secX - 20 - X}" height="${rh}" style="fill:var(--ink)"/>`;
-    b += `<text class="m${cls}" x="${cols[0] + 4}" y="${y + 36}" font-size="14">${n}</text>
-<text class="v${cls}" x="${cols[1]}" y="${y + 36}" font-size="17">${layer}</text>
-<text class="b${cls}" x="${cols[2]}" y="${y + 36}" font-size="17">${what}</text>
-<line class="hr" x1="${cols[3] + .5}" y1="${y}" x2="${cols[3] + .5}" y2="${y + rh}"/>
-<text class="v${cls}" x="${cols[3] + 20}" y="${y + 36}" font-size="17">${status}</text>
-<line class="hr" x1="${X}" y1="${y + rh + .5}" x2="${secX - 20}" y2="${y + rh + .5}"/>`;
+<text class="h" x="${X}" y="96" font-size="40">Down the stack</text>
+<text class="b" x="${X}" y="132" font-size="19">Top is furthest from the machine. I'm working my way down.</text>`;
+  rows.forEach(([layer, what, status], i) => {
+    const y = top + i * (rh + grout), [fill, ink] = glaze[status];
+    b += fill ? `<rect x="${X}" y="${y}" width="${bandR - X}" height="${rh}" fill="${fill}"/>`
+      : `<rect x="${X + 1}" y="${y + 1}" width="${bandR - X - 2}" height="${rh - 2}" fill="none" stroke="${tok.ink}" stroke-width="2"/>`;
+    b += `<text class="v" x="${X + 22}" y="${y + 34}" font-size="18" style="fill:${ink}">${layer}</text>
+<text class="b" x="${X + 210}" y="${y + 34}" font-size="18" style="fill:${ink}">${what}</text>
+<text class="h" x="${bandR - 22}" y="${y + 34}" font-size="18" text-anchor="end" style="fill:${ink}">${status}</text>`;
   });
-  const bot = top + rows.length * rh;
-  // security spans every layer
-  b += `<rect class="k" x="${secX + .5}" y="${top + .5}" width="${R - secX - 1}" height="${bot - top - 1}"/>
-<text class="l" x="${secX}" y="${top - 16}" font-size="13">Across all</text>
-<text class="v" font-size="17" transform="translate(${secX + 40} ${bot - 22}) rotate(-90)">Security, next</text>
-<line class="h" x1="${X}" y1="${bot + 1}" x2="${R}" y2="${bot + 1}"/>`;
-  const H = bot + 90;
-  fs.writeFileSync(`${OUT}/stack.svg`, sheet(H, 'The stack, in section. Top is furthest from the machine; I am working my way down. AI systems: next. Web, HTML and CSS: learning. Python, what I build with: solid. Java: learning. C, the basics: curious. Assembly, the basics: curious. Security, across every layer: next.', b, '03'));
+  const bot = top + rows.length * (rh + grout) - grout;
+  b += `<rect x="${R - secW + 1}" y="${top + 1}" width="${secW - 2}" height="${bot - top - 2}" fill="none" stroke="${tok.ink}" stroke-width="2"/>
+<text class="v" font-size="18" transform="translate(${R - secW / 2 + 6} ${bot - 24}) rotate(-90)">Security, every layer</text>
+<text class="h" font-size="18" transform="translate(${R - secW / 2 + 6} ${top + 70}) rotate(-90)" text-anchor="middle">next</text>`;
+  const H = bot + 64;
+  fs.writeFileSync(`${OUT}/stack.svg`, svg(H, 'Down the stack. Top is furthest from the machine; I am working my way down. AI systems, apps that keep working when an API fails: next. Web, HTML and CSS: learning. Python, what I build with: solid. Java: learning. C, the basics: curious. Assembly, the basics: curious. Security, across every layer: next.', ['body'], b));
 }
-console.log('ok', fs.readdirSync(OUT).map(f => f + ' ' + fs.statSync(`${OUT}/${f}`).size));
+
+// Projects: every project gets its own tile from the bytes of its name.
+{
+  const H = 316, X = 56, T = 168, ty = 76;
+  const b = `
+<text class="h" x="${X}" y="52" font-size="40" dy="0.2em">Projects</text>
+${tile('decided', X, ty + 20, T)}
+<text class="h" x="${X + T + 40}" y="${ty + 56}" font-size="32">decided</text>
+<text class="b" x="${X + T + 40}" y="${ty + 94}" font-size="19">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
+<text class="b" x="${X + T + 40}" y="${ty + 122}" font-size="19">You choose the goal, it makes the calls.</text>
+<text class="l" x="${X + T + 40}" y="${ty + 160}" font-size="15">Built with</text><text class="v" x="${X + T + 40}" y="${ty + 182}" font-size="16">HTML</text>
+<text class="l" x="${X + T + 170}" y="${ty + 160}" font-size="15">Licence</text><text class="v" x="${X + T + 170}" y="${ty + 182}" font-size="16">Open source</text>
+<text class="l" x="${X + T + 320}" y="${ty + 160}" font-size="15">Tile</text><text class="t" x="${X + T + 320}" y="${ty + 182}" font-size="18">${bytes('decided')}</text>`;
+  fs.writeFileSync(`${OUT}/projects.svg`, svg(H, 'Projects. decided: picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source. Its tile is the bytes of its name.', ['body', 'tiny'], b));
+}
+console.log('built', fs.readdirSync(OUT).join(', '));
