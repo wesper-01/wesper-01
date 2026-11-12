@@ -35,20 +35,33 @@ const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
 const MONO = face('JetBrains Mono', 400, 'jetbrains-mono-latin-400-normal.woff2');
 
-// The render: the name, extruded and ray-traced into characters. It holds facing you with a slow drift,
-// then makes one full eased turn, the fixed light raking across its faces, and settles again.
-const R = { cols: 150, rows: 27, depth: 7, drift: 0.18, pitch: -0.2, sx: 0.66, spinAt: 6, spinFor: 2, hold: 0.4, spinStep: 0.05, loop: 12 };
+// The render: the handle, extruded and ray-traced into characters, at a slight fixed angle. It never
+// moves. It first appears as a silhouette of flickering bits, decodes left to right into its shaded
+// 3D characters, holds while the light slowly sweeps across it, then scrambles back into bits.
+const R = { cols: 150, rows: 27, depth: 7, yaw: 0.24, pitch: -0.2, sx: 0.66, loop: 12,
+  decodeAt: 0.3, decodeFor: 1.4, decodeStep: 0.07, holdStep: 0.3, scrambleAt: 10.8, scrambleStep: 0.1 };
 const NAME = scene(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/name-grid.json'), 'utf8')), R.depth);
-const ease = p => p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2;
-const pose = t => {
-  const p = Math.min(1, Math.max(0, (t - R.spinAt) / R.spinFor));
-  return [R.drift * Math.sin(2 * Math.PI * t / R.loop) + 2 * Math.PI * ease(p), R.pitch + 0.05 * Math.cos(2 * Math.PI * t / R.loop) - 0.16 * Math.sin(Math.PI * p)];
-};
-const TIMES = [];
-for (let t = 0; t < R.spinAt - 1e-9; t += R.hold) TIMES.push([t, Math.min(t + R.hold, R.spinAt)]);
-for (let t = R.spinAt; t < R.spinAt + R.spinFor - 1e-9; t += R.spinStep) TIMES.push([t, t + R.spinStep]);
-for (let t = R.spinAt + R.spinFor; t < R.loop - 1e-9; t += R.hold) TIMES.push([t, Math.min(t + R.hold, R.loop)]);
-const FRAMES = TIMES.map(([t0, t1]) => { const [yaw, pitch] = pose(t0); return { t0, t1, lines: frame(NAME, R.cols, R.rows, yaw, pitch, R.sx, R.sx * 1.7) }; });
+const lightAt = t => { const k = Math.sin(Math.PI * Math.min(1, Math.max(0, (t - R.decodeAt - R.decodeFor) / (R.scrambleAt - R.decodeAt - R.decodeFor)))); return [-0.42 + 0.84 * k, 0.5, -0.85]; };
+const BASE = frame(NAME, R.cols, R.rows, R.yaw, R.pitch, R.sx, R.sx * 1.7, lightAt(0));
+const NAMEBITS = [...Buffer.from('wesper', 'ascii')].flatMap(b => [...b.toString(2).padStart(8, '0')]);
+let rs = 0x51ee;
+const jitter = BASE.map(l => [...l.padEnd(R.cols)].map(() => ((rs = (rs * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)));
+// when each cell locks in (decode, left to right) and lets go (scramble, right to left)
+const lockAt = (r, c) => R.decodeAt + R.decodeFor * (0.82 * c / R.cols + 0.18 * jitter[r][c]);
+const freeAt = (r, c) => R.scrambleAt + (R.loop - R.scrambleAt - 0.2) * (0.82 * (1 - c / R.cols) + 0.18 * jitter[r][c]);
+const TIMES = [[0, R.decodeAt]];
+for (let t = R.decodeAt; t < R.decodeAt + R.decodeFor - 1e-9; t += R.decodeStep) TIMES.push([t, t + R.decodeStep]);
+for (let t = R.decodeAt + R.decodeFor; t < R.scrambleAt - 1e-9; t += R.holdStep) TIMES.push([t, Math.min(t + R.holdStep, R.scrambleAt)]);
+for (let t = R.scrambleAt; t < R.loop - 1e-9; t += R.scrambleStep) TIMES.push([t, Math.min(t + R.scrambleStep, R.loop)]);
+const FRAMES = TIMES.map(([t0, t1], n) => {
+  const lit = frame(NAME, R.cols, R.rows, R.yaw, R.pitch, R.sx, R.sx * 1.7, lightAt(t0));
+  const lines = BASE.map((l, r) => [...l.padEnd(R.cols)].map((ch, c) => {
+    if (ch === ' ') return ' ';
+    const locked = t0 >= lockAt(r, c) && t0 < freeAt(r, c);
+    return locked ? (lit[r][c] || ch) : NAMEBITS[(r * 7 + c * 3 + n) % NAMEBITS.length];
+  }).join('').replace(/\s+$/, ''));
+  return { t0, t1, lines };
+});
 
 // The readout, Matrix-style. Binary rain falls through it; every character starts as a flickering
 // bit and locks into its letter as the rain passes, left to right with a little scatter. It holds,
@@ -129,7 +142,7 @@ const profile = t => {
     return row;
   }).join('\n');
   const H = y0 + 30 + ROWS.length * 30 + 10;
-  return [H, 'Wesper, as a 3D ASCII render of the name that holds, spins a full turn, and settles. Each value below decodes out of falling binary, Matrix-style. Engineering student. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
+  return [H, 'Wesper, as a 3D ASCII render of the name that decodes out of binary, holds while a light sweeps across it, and scrambles back. Each value below decodes out of falling binary, Matrix-style. Engineering student. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
 ${frames}
 <g class="in"><line x1="${X}" y1="${y0 + 6.5}" x2="${W - X}" y2="${y0 + 6.5}" stroke="${t.rule}"/>
 ${info}</g>`];
