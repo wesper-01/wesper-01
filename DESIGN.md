@@ -47,8 +47,17 @@ Shared:
 - A language name is written in its own script.
 - No emoji, no ASCII art, no middle-dot lists, no em dashes, no eyebrows, no invented numbers, no slogans.
 
+## Pictures
+- Two real photographs, each standing for part of my life, never for mood: a silicon chip under a microscope (the machine at the bottom of the stack) and a hand gripping a dumbbell (training, which `decided` is built for).
+- Greyscale only, cropped to the subject, square corners, no frame. Dimmed to 82 to 85 percent on the dark theme so they sit in the page.
+- Every photograph is credited in the README with its author, licence and source. Kept in `tools/photos/`.
+
 ## Motion
-- Still.
+- One motion per image, and each one says something true:
+  - Header: the greeting above my name cycles through the languages I speak (Hello, مرحبا, Bonjour, Hola), 3 seconds each.
+  - Stack: a small pulse runs from Python down the line into the chip, every 5.2 seconds: working my way down.
+  - Projects: the goal `decided` plans for cycles: bulk, cut, recomp.
+- `transform` and `opacity` only, eased, never bouncing. Under `prefers-reduced-motion: reduce` nothing moves: the first word stays and the pulse is hidden.
 
 ## Exports
 `assets/{header,stack,projects}-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. Fonts are vendored in `tools/fonts/` (SIL Open Font License) and embedded in each image.
