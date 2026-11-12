@@ -11,7 +11,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const design = fs.readFileSync(path.join(ROOT, 'DESIGN.md'), 'utf8');
 const tok = {};
 for (const [, name, L, C, H] of design.matchAll(/--color-([\w-]+):\s*oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)/g)) tok[name] = hex(+L / 100, +C, +H);
-const grout = +(design.match(/--grout:\s*(\d+)px/) || [, 6])[1];
+const gap = +(design.match(/--gap:\s*(\d+)px/) || [, 8])[1];
 
 function hex(L, C, h) {
   const r = h * Math.PI / 180, A = C * Math.cos(r), B = C * Math.sin(r);
@@ -23,69 +23,85 @@ function hex(L, C, h) {
 const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base64');
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
 const fonts = {
+  display: face('Jacquard 24', 400, 'jacquard-24-latin-400-normal.woff2'),
   body: face('Rethink Sans', 400, 'rethink-sans-latin-400-normal.woff2') + face('Rethink Sans', 500, 'rethink-sans-latin-500-normal.woff2') + face('Rethink Sans', 800, 'rethink-sans-latin-800-normal.woff2'),
-  tiny: face('Tiny5', 400, 'tiny5-latin-400-normal.woff2'),
+  mono: face('Azeret Mono', 500, 'azeret-mono-latin-500-normal.woff2'),
   kufi: face('Noto Kufi Arabic', 700, 'noto-kufi-arabic-arabic-700-normal.woff2'),
 };
-const css = (need) => `${need.map(n => fonts[n]).join('')}
-.h{font-family:"Rethink Sans",sans-serif;font-weight:800;letter-spacing:-0.02em;fill:${tok.ink}}
+const css = need => `${need.map(n => fonts[n]).join('')}
+.h{font-family:"Jacquard 24",serif;font-weight:400;fill:${tok.ink}}
 .b{font-family:"Rethink Sans",sans-serif;font-weight:400;fill:${tok['ink-2']}}
 .l{font-family:"Rethink Sans",sans-serif;font-weight:500;fill:${tok.muted}}
 .v{font-family:"Rethink Sans",sans-serif;font-weight:500;fill:${tok.ink}}
-.t{font-family:"Tiny5",monospace;font-weight:400;fill:${tok.ink}}
-.ar{font-family:"Noto Kufi Arabic",sans-serif;font-weight:700;fill:${tok.green}}`;
+.s{font-family:"Rethink Sans",sans-serif;font-weight:800;fill:${tok.ink}}
+.m{font-family:"Azeret Mono",monospace;font-weight:500;fill:${tok.muted}}
+.ar{font-family:"Noto Kufi Arabic",sans-serif;font-weight:700;fill:${tok.ink}}`;
+
+const chrome = `<defs><linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="${tok['chrome-1']}"/><stop offset="0.42" stop-color="${tok['chrome-2']}"/>
+<stop offset="0.55" stop-color="${tok['chrome-3']}"/><stop offset="1" stop-color="${tok['chrome-4']}"/></linearGradient></defs>`;
 
 const W = 960;
 const svg = (H, label, need, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
 <title>${label}</title>
 <style>${css(need)}</style>
+${chrome}
 <rect width="${W}" height="${H}" fill="${tok.paper}"/>
 ${body}
 </svg>`;
 
-// The tile: the bytes of a name fill one octant of a 16 x 16 grid, mirrored eight ways.
-function tile(name, x, y, size) {
-  const bits = [...Buffer.from(name, 'ascii')].flatMap(b => [7, 6, 5, 4, 3, 2, 1, 0].map(i => (b >> i) & 1));
-  const N = 16, half = 8, cell = size / N, gap = Math.max(1, size / 150);
-  const glaze = r => r <= 1 ? tok.cobalt : r <= 4 ? tok.green : r <= 6 ? tok.ochre : tok.ink;
-  let out = `<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="${tok.grout}"/>`, k = 0;
-  const on = new Map();
-  for (let a = 0; a < half; a++) for (let b = a; b < half; b++) on.set(`${a},${b}`, bits[k++ % bits.length]);
-  for (let row = 0; row < N; row++) for (let col = 0; col < N; col++) {
-    const a = col < half ? half - 1 - col : col - half, b = row < half ? half - 1 - row : row - half;
-    const lit = on.get(a <= b ? `${a},${b}` : `${b},${a}`);
-    out += `<rect x="${(x + col * cell + gap / 2).toFixed(2)}" y="${(y + row * cell + gap / 2).toFixed(2)}" width="${(cell - gap).toFixed(2)}" height="${(cell - gap).toFixed(2)}" fill="${lit ? glaze(Math.max(a, b)) : tok.paper}"/>`;
-  }
-  return out;
+// The sigil: each nibble of the name grows one thorn off a central spine, mirrored left to right.
+function sigil(name, cx, top, H) {
+  const nib = [...Buffer.from(name, 'ascii')].flatMap(b => [b >> 4, b & 15]);
+  const n = nib.length, p = v => v.toFixed(1);
+  // a thin crescent from a base of half-width w to a sharp tip, bent sideways by `bend`
+  const blade = (x0, y0, x1, y1, w, bend) => {
+    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
+    const mx = (x0 + x1) / 2 + nx * bend, my = (y0 + y1) / 2 + ny * bend;
+    return `M${p(x0 - nx * w)} ${p(y0 - ny * w)}Q${p(mx - nx * w * 0.6)} ${p(my - ny * w * 0.6)} ${p(x1)} ${p(y1)}Q${p(mx + nx * w * 0.6)} ${p(my + ny * w * 0.6)} ${p(x0 + nx * w)} ${p(y0 + ny * w)}Z`;
+  };
+  // spine: a long tapered needle, widest just above centre
+  let d = `M${p(cx)} ${p(top)}Q${p(cx + 7)} ${p(top + H * 0.45)} ${p(cx)} ${p(top + H)}Q${p(cx - 7)} ${p(top + H * 0.45)} ${p(cx)} ${p(top)}Z`;
+  nib.forEach((v, i) => {
+    const y = top + H * (0.1 + 0.8 * (i + 0.5) / n);
+    const L = H * (0.16 + 0.3 * v / 15);
+    const up = v & 1 ? -1 : 1;
+    const ang = (12 + 16 * ((v >> 1) & 3)) * Math.PI / 180;
+    const bend = (v & 8 ? 1 : -1) * L * 0.22 * up;
+    const w = 1.2 + ((v >> 2) & 1) * 1.4;
+    const x1 = cx + L * Math.cos(ang), y1 = y + up * L * Math.sin(ang);
+    d += blade(cx, y, x1, y1, w, bend) + blade(cx, y, 2 * cx - x1, y1, w, -bend);
+  });
+  // two hairline arcs, broken where the nibble sum says
+  const sum = nib.reduce((a, b) => a + b, 0), r = H * 0.3, g = (sum % 60 + 20) * Math.PI / 180;
+  const arc = (a0, a1) => `M${p(cx + r * Math.sin(a0))} ${p(top + H / 2 - r * Math.cos(a0))}A${p(r)} ${p(r)} 0 0 1 ${p(cx + r * Math.sin(a1))} ${p(top + H / 2 - r * Math.cos(a1))}`;
+  return `<path d="${d}" fill="url(#chrome)"/>
+<path d="${arc(g, Math.PI - g / 2)} ${arc(Math.PI + g / 2, 2 * Math.PI - g)}" fill="none" stroke="url(#chrome)" stroke-width="1"/>`;
 }
 const bytes = s => [...Buffer.from(s, 'ascii')].map(b => b.toString(16)).join(' ');
 
-// Header: the tile, the wordmark, the name in two scripts, the languages in their own.
+// Header: the sigil, the wordmark, the name in two scripts, the languages in their own.
 {
-  const H = 420, T = 300, tx = 56, ty = 52;
-  const langs = [['ar', 'العربية'], ['v', 'Français'], ['v', 'English'], ['v', 'Español']];
-  let lx = 400, row = '';
-  for (const [c, w] of langs) {
-    const width = c === 'ar' ? 74 : w.length * 9.6;
-    row += `<text class="${c}" x="${lx}" y="${H - 58}" font-size="17">${w}</text>`;
-    lx += width + 26;
-  }
-  row += `<text class="l" x="${lx - 18}" y="${H - 58}" font-size="17">(learning)</text>`;
+  const H = 440, sx = 200, sTop = 70, sH = 300;
+  const langs = [['ar', 'العربية', 66], ['v', 'Français', 78], ['v', 'English', 66], ['v', 'Español', 70]];
+  let lx = 420, row = '';
+  for (const [c, w, width] of langs) { row += `<text class="${c}" x="${lx}" y="${H - 62}" font-size="17">${w}</text>`; lx += width + 24; }
+  row += `<text class="l" x="${lx - 18}" y="${H - 62}" font-size="17">(learning)</text>`;
   const body = `
-${tile('wesper', tx, ty, T)}
-<text class="t" x="${tx}" y="${ty + T + 34}" font-size="20">${bytes('wesper')}</text>
-<text class="l" x="${tx + 200}" y="${ty + T + 32}" font-size="15">wesper, as bytes</text>
-<text class="t" x="396" y="146" font-size="96">WESPER</text>
-<text class="h" x="400" y="210" font-size="34">Rayane</text>
-<text class="ar" x="${400 + 132}" y="212" font-size="32">ريان</text>
-<text class="b" x="400" y="258" font-size="20">Engineering student from Morocco, living in Guadix, Spain.</text>
-<text class="b" x="400" y="288" font-size="20">Python first, working my way down the stack.</text>
-<text class="l" x="400" y="${H - 92}" font-size="15">Speaks</text>
+${sigil('wesper', sx, sTop, sH)}
+<text class="m" x="${sx}" y="${H - 34}" font-size="14" text-anchor="middle">${bytes('wesper')}</text>
+<text class="h" x="414" y="150" font-size="132" style="fill:url(#chrome)">wesper</text>
+<text class="s" x="420" y="206" font-size="30">Rayane</text>
+<text class="ar" x="${420 + 116}" y="208" font-size="28">ريان</text>
+<text class="b" x="420" y="254" font-size="19">Engineering student from Morocco, living in Guadix, Spain.</text>
+<text class="b" x="420" y="284" font-size="19">Python first, working my way down the stack.</text>
+<line x1="420" y1="${H - 118}" x2="${W - 56}" y2="${H - 118}" stroke="${tok.rule}" stroke-width="1"/>
+<text class="l" x="420" y="${H - 92}" font-size="15">Speaks</text>
 ${row}`;
-  fs.writeFileSync(`${OUT}/header.svg`, svg(H, `wesper. Rayane, ريان. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). The tile is the bytes of wesper, ${bytes('wesper')}, mirrored eight ways.`, ['body', 'tiny', 'kufi'], body));
+  fs.writeFileSync(`${OUT}/header.svg`, svg(H, `wesper. Rayane, ريان. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). The sigil is grown from the bytes of wesper, ${bytes('wesper')}.`, ['display', 'body', 'mono', 'kufi'], body));
 }
 
-// Stack: each layer glazed by status.
+// Stack: status drawn in line weight.
 {
   const rows = [
     ['AI systems', 'Apps that keep working when an API fails', 'next'],
@@ -95,39 +111,39 @@ ${row}`;
     ['Systems', 'C, the basics', 'curious'],
     ['Machine', 'Assembly, the basics', 'curious'],
   ];
-  const glaze = { solid: [tok.green, tok.paper], learning: [tok.ochre, tok.ink], curious: [tok.cobalt, tok.paper], next: [null, tok.ink] };
-  const X = 56, R = W - 56, top = 168, rh = 54, secW = 96, bandR = R - secW - grout;
+  const X = 56, R = W - 56, top = 172, rh = 52, secW = 92, bandR = R - secW - gap;
+  const box = (x, y, w, h, status) => status === 'solid' ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${tok.ink}"/>`
+    : `<rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" fill="none" stroke="${status === 'learning' ? tok.ink : tok.muted}" stroke-width="${status === 'learning' ? 2 : 1}"${status === 'next' ? ' stroke-dasharray="6 5"' : ''}/>`;
   let b = `
-<text class="h" x="${X}" y="96" font-size="40">Down the stack</text>
-<text class="b" x="${X}" y="132" font-size="19">Top is furthest from the machine. I'm working my way down.</text>`;
+<text class="h" x="${X}" y="96" font-size="56">Down the stack</text>
+<text class="b" x="${X}" y="136" font-size="19">Top is furthest from the machine. I'm working my way down.</text>`;
   rows.forEach(([layer, what, status], i) => {
-    const y = top + i * (rh + grout), [fill, ink] = glaze[status];
-    b += fill ? `<rect x="${X}" y="${y}" width="${bandR - X}" height="${rh}" fill="${fill}"/>`
-      : `<rect x="${X + 1}" y="${y + 1}" width="${bandR - X - 2}" height="${rh - 2}" fill="none" stroke="${tok.ink}" stroke-width="2"/>`;
-    b += `<text class="v" x="${X + 22}" y="${y + 34}" font-size="18" style="fill:${ink}">${layer}</text>
-<text class="b" x="${X + 210}" y="${y + 34}" font-size="18" style="fill:${ink}">${what}</text>
-<text class="h" x="${bandR - 22}" y="${y + 34}" font-size="18" text-anchor="end" style="fill:${ink}">${status}</text>`;
+    const y = top + i * (rh + gap), ink = status === 'solid' ? `style="fill:${tok.paper}"` : '';
+    b += box(X, y, bandR - X, rh, status) + `
+<text class="v" x="${X + 22}" y="${y + 33}" font-size="18" ${ink}>${layer}</text>
+<text class="b" x="${X + 210}" y="${y + 33}" font-size="18" ${ink}>${what}</text>
+<text class="s" x="${bandR - 22}" y="${y + 33}" font-size="16" text-anchor="end" ${ink}>${status}</text>`;
   });
-  const bot = top + rows.length * (rh + grout) - grout;
-  b += `<rect x="${R - secW + 1}" y="${top + 1}" width="${secW - 2}" height="${bot - top - 2}" fill="none" stroke="${tok.ink}" stroke-width="2"/>
+  const bot = top + rows.length * (rh + gap) - gap;
+  b += box(R - secW, top, secW, bot - top, 'next') + `
 <text class="v" font-size="18" transform="translate(${R - secW / 2 + 6} ${bot - 24}) rotate(-90)">Security, every layer</text>
-<text class="h" font-size="18" transform="translate(${R - secW / 2 + 6} ${top + 70}) rotate(-90)" text-anchor="middle">next</text>`;
-  const H = bot + 64;
-  fs.writeFileSync(`${OUT}/stack.svg`, svg(H, 'Down the stack. Top is furthest from the machine; I am working my way down. AI systems, apps that keep working when an API fails: next. Web, HTML and CSS: learning. Python, what I build with: solid. Java: learning. C, the basics: curious. Assembly, the basics: curious. Security, across every layer: next.', ['body'], b));
+<text class="s" font-size="16" transform="translate(${R - secW / 2 + 6} ${top + 24}) rotate(-90)" text-anchor="end">next</text>`;
+  fs.writeFileSync(`${OUT}/stack.svg`, svg(bot + 60, 'Down the stack. Top is furthest from the machine; I am working my way down. AI systems, apps that keep working when an API fails: next. Web, HTML and CSS: learning. Python, what I build with: solid. Java: learning. C, the basics: curious. Assembly, the basics: curious. Security, across every layer: next.', ['display', 'body'], b));
 }
 
-// Projects: every project gets its own tile from the bytes of its name.
+// Projects: every project gets its own sigil from the bytes of its name.
 {
-  const H = 316, X = 56, T = 168, ty = 76;
+  const H = 330, X = 56, tx = X + 250;
   const b = `
-<text class="h" x="${X}" y="52" font-size="40" dy="0.2em">Projects</text>
-${tile('decided', X, ty + 20, T)}
-<text class="h" x="${X + T + 40}" y="${ty + 56}" font-size="32">decided</text>
-<text class="b" x="${X + T + 40}" y="${ty + 94}" font-size="19">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
-<text class="b" x="${X + T + 40}" y="${ty + 122}" font-size="19">You choose the goal, it makes the calls.</text>
-<text class="l" x="${X + T + 40}" y="${ty + 160}" font-size="15">Built with</text><text class="v" x="${X + T + 40}" y="${ty + 182}" font-size="16">HTML</text>
-<text class="l" x="${X + T + 170}" y="${ty + 160}" font-size="15">Licence</text><text class="v" x="${X + T + 170}" y="${ty + 182}" font-size="16">Open source</text>
-<text class="l" x="${X + T + 320}" y="${ty + 160}" font-size="15">Tile</text><text class="t" x="${X + T + 320}" y="${ty + 182}" font-size="18">${bytes('decided')}</text>`;
-  fs.writeFileSync(`${OUT}/projects.svg`, svg(H, 'Projects. decided: picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source. Its tile is the bytes of its name.', ['body', 'tiny'], b));
+<text class="h" x="${X}" y="84" font-size="56">Projects</text>
+${sigil('decided', X + 100, 112, 190)}
+<text class="h" x="${tx}" y="156" font-size="44">decided</text>
+<text class="b" x="${tx}" y="196" font-size="19">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
+<text class="b" x="${tx}" y="224" font-size="19">You choose the goal, it makes the calls.</text>
+<line x1="${tx}" y1="250" x2="${W - 56}" y2="250" stroke="${tok.rule}" stroke-width="1"/>
+<text class="l" x="${tx}" y="276" font-size="15">Built with</text><text class="v" x="${tx}" y="298" font-size="16">HTML</text>
+<text class="l" x="${tx + 130}" y="276" font-size="15">Licence</text><text class="v" x="${tx + 130}" y="298" font-size="16">Open source</text>
+<text class="l" x="${tx + 280}" y="276" font-size="15">Sigil</text><text class="m" x="${tx + 280}" y="298" font-size="14">${bytes('decided')}</text>`;
+  fs.writeFileSync(`${OUT}/projects.svg`, svg(H, 'Projects. decided: picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source. Its sigil is grown from the bytes of its name.', ['display', 'body', 'mono'], b));
 }
 console.log('built', fs.readdirSync(OUT).join(', '));
