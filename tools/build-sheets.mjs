@@ -43,6 +43,31 @@ const FRAMES = Array.from({ length: R.frames }, (_, i) => {
   return frame(NAME, R.cols, R.rows, R.yaw * Math.sin(a), R.pitch + 0.05 * Math.cos(a), R.sx, R.sx * 1.7);
 });
 
+// The readout decodes itself: each value shows as its real binary, then its real hex, then the hex
+// collapses into letters left to right until it reads as plain text. It holds, then starts again.
+const DEC = { loop: 12, start: 0.6, stagger: 0.35, bin: 0.55, hex: 0.55, decode: 1.1, steps: 11 };
+const KEYFRAMES = [];
+const show = (t0, t1) => {
+  const id = `s${KEYFRAMES.length}`, p = t => (100 * t / DEC.loop).toFixed(3);
+  KEYFRAMES.push(t0 <= 0 ? `@keyframes ${id}{0%{opacity:1}${p(t1)}%,100%{opacity:0}}`
+    : t1 >= DEC.loop ? `@keyframes ${id}{0%{opacity:0}${p(t0)}%,100%{opacity:1}}`
+    : `@keyframes ${id}{0%{opacity:0}${p(t0)}%{opacity:1}${p(t1)}%,100%{opacity:0}}`);
+  return id;
+};
+const hexOf = s => [...Buffer.from(s, 'utf8')].map(b => b.toString(16).padStart(2, '0')).join('');
+const binOf = s => [...Buffer.from(s, 'utf8')].map(b => b.toString(2).padStart(8, '0')).join(' ');
+function decodeRow(v, i) {
+  const s0 = DEC.start + i * DEC.stagger, h0 = s0 + DEC.bin, d0 = h0 + DEC.hex, f0 = d0 + DEC.decode, dt = DEC.decode / DEC.steps;
+  const states = [{ text: binOf(v), cls: 'bin', id: show(0, h0) }, { text: hexOf(v), cls: 'hx', id: show(h0, d0) }];
+  for (let k = 1; k < DEC.steps; k++) {
+    const c = Math.round(v.length * k / DEC.steps);
+    states.push({ text: v.slice(0, c), rest: hexOf(v.slice(c)), cls: 'v', id: show(d0 + (k - 1) * dt, d0 + k * dt) });
+  }
+  states.push({ text: v, cls: 'v fin', id: show(f0 - dt, DEC.loop) });
+  return states;
+}
+let DECODE_CSS = '';
+
 const W = 960, X = 8, FS = W / R.cols / 0.6, LH = FS * 1.02;
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const svg = (t, H, label, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
@@ -54,7 +79,10 @@ text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre}
 @keyframes fr{0%{opacity:1}${(100 / R.frames).toFixed(3)}%,100%{opacity:0}}
 .in{animation:in 1s cubic-bezier(.2,.7,.2,1) .3s backwards}
 @keyframes in{from{opacity:0;transform:translateY(8px)}}
-@media (prefers-reduced-motion: reduce){.fr,.in{animation:none}.fr{opacity:0}.fr.f0{opacity:1}}</style>
+${DECODE_CSS}
+.st{opacity:0;animation-duration:${DEC.loop}s;animation-timing-function:step-end;animation-iteration-count:infinite}
+.bin,.hx{fill:${t.muted}}
+@media (prefers-reduced-motion: reduce){.fr,.in,.st{animation:none}.fr,.st{opacity:0}.fr.f0,.st.fin{opacity:1}}</style>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${body}
 </svg>`;
@@ -70,9 +98,12 @@ const ROWS = [
 const profile = t => {
   const top = 8, renderH = R.rows * LH, y0 = top + renderH + 34;
   const frames = FRAMES.map((lines, i) => `<text class="r fr${i ? '' : ' f0'}" font-size="${FS.toFixed(2)}" style="animation-delay:${(i * R.loop / R.frames).toFixed(3)}s">${lines.map((l, j) => `<tspan x="0" y="${(top + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`).join('\n');
-  const info = ROWS.map(([k, v], i) => `<text font-size="17" y="${y0 + 30 + i * 30}"><tspan class="k" x="${X}">${k}</tspan><tspan class="v" x="${X + 190}">${v}</tspan></text>`).join('\n');
+  const vx = X + 190;
+  const info = `<clipPath id="col"><rect x="${vx}" y="${y0}" width="${W - X - vx}" height="${ROWS.length * 30 + 20}"/></clipPath>` +
+    ROWS.map(([k, v], i) => `<text class="k" x="${X}" y="${y0 + 30 + i * 30}" font-size="17">${k}</text>
+<g clip-path="url(#col)">${decodeRow(v, i).map(({ text, rest, cls, id }) => `<text class="st ${cls}" x="${vx}" y="${y0 + 30 + i * 30}" font-size="17" style="animation-name:${id}">${esc(text)}${rest ? `<tspan class="hx">${rest}</tspan>` : ''}</text>`).join('')}</g>`).join('\n');
   const H = y0 + 30 + ROWS.length * 30 + 10;
-  return [H, 'Rayane, engineering student, rendered as a rotating 3D ASCII render of the name. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
+  return [H, 'Rayane, engineering student, rendered as a rotating 3D ASCII render of the name. Each value below decodes from binary to hex to plain text. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
 ${frames}
 <g class="in"><text class="k" x="${X}" y="${y0 - 6}" font-size="14">rayane, engineering student</text>
 <line x1="${X}" y1="${y0 + 6.5}" x2="${W - X}" y2="${y0 + 6.5}" stroke="${t.rule}"/>
@@ -80,7 +111,9 @@ ${info}</g>`];
 };
 
 for (const [mode, t] of Object.entries(THEMES)) {
+  KEYFRAMES.length = 0;
   const [H, label, body] = profile(t);
+  DECODE_CSS = KEYFRAMES.join('');
   fs.writeFileSync(path.join(OUT, `profile-${mode}.svg`), svg(t, H, label, body));
 }
 console.log('built', fs.readdirSync(OUT).map(n => `${n} ${(fs.statSync(path.join(OUT, n)).size / 1024).toFixed(0)}KB`).join(', '));
