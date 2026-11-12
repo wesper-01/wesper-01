@@ -1,4 +1,4 @@
-<img src="assets/header.svg" width="100%" alt="WESPER. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). The sigil is grown from the bytes of wesper, 77 65 73 70 65 72.">
+<img src="assets/header.svg" width="100%" alt="WESPER. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). An ASCII padlock whose body is a hex dump of the bytes of wesper, 77 65 73 70 65 72, with a keyhole cut through it.">
 
 <img src="assets/stack.svg" width="100%" alt="The stack. Top is furthest from the machine; I'm working my way down. AI systems: next. Web, HTML and CSS: learning. Python: solid, the language I'm good with and the one I build in. Java: learning. C, the basics: curious. Assembly, the basics: curious. Security, across every layer: next.">
 

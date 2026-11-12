@@ -92,6 +92,39 @@ function asciiSigil(name, cx, top, H, fs) {
   const esc = c => c === '&' ? '&amp;' : c === '<' ? '&lt;' : c;
   return `<text class="a" x="${x0}" y="${top}" font-size="${fs}" style="fill:url(#chrome)">${grid.map((row, i) => `<tspan x="${x0.toFixed(1)}" y="${(top + (i + 0.8) * ch).toFixed(1)}">${row.map(esc).join('')}</tspan>`).join('')}</text>`;
 }
+// The lock, in ASCII: a shackle drawn in direction characters, a body filled with a hex dump of the
+// name's bytes, and a keyhole cut through the dump (whole bytes only, never half of one).
+function asciiLock(name, cx, top, fs) {
+  const cw = fs * 0.6, ch = fs * 1.05, cols = 41, rows = 26, x0 = cx - (cols * cw) / 2;
+  const hex = [...Buffer.from(name, 'ascii')].map(b => b.toString(16));
+  const L = 2, R = cols - 3, T = 11, B = rows - 1;           // body walls, in cells
+  const scx = (cols - 1) / 2, scy = T - 1.5, rO = 13, rI = 10.5; // shackle, in cells (x units)
+  const kx = scx, ky = T + 4.5;                                // keyhole centre
+  const aspect = ch / cw;
+  const dir = (dx, dy) => { let a = Math.atan2(dy, dx) * 180 / Math.PI; a = ((a % 180) + 180) % 180; return a < 22.5 || a >= 157.5 ? '-' : a < 67.5 ? '\\' : a < 112.5 ? '|' : '/'; };
+  const keyhole = (j, i) => Math.hypot(j - kx, (i - ky) * aspect) < 4.2 || (Math.abs(j - kx) < 1.6 && i > ky && i < ky + 5.5);
+  const metal = [], dump = [];
+  for (let i = 0; i < rows; i++) {
+    const m = Array(cols).fill(' '), h = Array(cols).fill(' ');
+    for (let j = 0; j < cols; j++) {
+      const dx = j - scx, dy = (i - scy) * aspect, r = Math.hypot(dx, dy);
+      if (i < T && ((dy <= 0 && r >= rI && r <= rO) || (dy > 0 && Math.abs(dx) >= rI && Math.abs(dx) <= rO))) m[j] = dy > 0 ? '|' : dir(-dy, dx);
+      if (i >= T && i <= B && j >= L && j <= R) m[j] = (i === T || i === B) ? (j === L || j === R ? '+' : '=') : (j === L || j === R ? '|' : ' ');
+    }
+    if (i > T && i < B) {
+      // bytes sit at columns L+2, L+5, ...; a byte touching the keyhole is dropped whole
+      for (let k = 0, j = L + 2; j + 1 < R - 1; k++, j += 3) {
+        if (keyhole(j, i) || keyhole(j + 1, i)) continue;
+        const t = hex[(k + (i - T) * 5) % hex.length];
+        h[j] = t[0]; h[j + 1] = t[1];
+      }
+    }
+    metal.push(m.join('')); dump.push(h.join(''));
+  }
+  const esc = c => c === '&' ? '&amp;' : c === '<' ? '&lt;' : c;
+  const block = (lines, style) => `<text class="a" font-size="${fs}" style="${style}">${lines.map((row, i) => `<tspan x="${x0.toFixed(1)}" y="${(top + (i + 0.8) * ch).toFixed(1)}">${[...row].map(esc).join('')}</tspan>`).join('')}</text>`;
+  return block(metal, 'fill:url(#chrome)') + block(dump, `fill:${tok.muted}`);
+}
 const bytes = s => [...Buffer.from(s, 'ascii')].map(b => b.toString(16)).join(' ');
 
 // Header: a title screen. The sigil, the wordmark, who I am, the languages in their own scripts.
@@ -103,14 +136,14 @@ const bytes = s => [...Buffer.from(s, 'ascii')].map(b => b.toString(16)).join(' 
   langs.forEach(([c, w, width], i) => { row += `<text class="${c}" x="${lx}" y="522" font-size="${c === 'ar' ? 22 : 20}">${w}</text>`; lx += width + (i === langs.length - 2 ? 8 : 28); });
   const body = `
 ${frame(24, 24, W - 48, H - 48)}
-${asciiSigil('wesper', cx, 56, 250, 9)}
+${asciiLock('wesper', cx, 40, 9)}
 <text class="w" x="${cx + 10}" y="364" font-size="64" text-anchor="middle" style="fill:url(#chrome)">WESPER</text>
 ${divider(cx, 392, 300)}
 <text class="i" x="${cx}" y="430" font-size="22" text-anchor="middle">Engineering student from Morocco, living in Guadix, Spain.</text>
 <text class="i" x="${cx}" y="460" font-size="22" text-anchor="middle">Python first, working my way down the stack.</text>
 ${row}
 <text class="m" x="52" y="${H - 44}" font-size="12">${bytes('wesper')}</text>`;
-  fs.writeFileSync(`${OUT}/header.svg`, svg(H, `WESPER. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). The sigil is grown from the bytes of wesper, ${bytes('wesper')}.`, ['display', 'body', 'mono', 'arabic'], body));
+  fs.writeFileSync(`${OUT}/header.svg`, svg(H, `WESPER. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). An ASCII padlock whose body is a hex dump of the bytes of wesper, ${bytes('wesper')}, with a keyhole cut through it.`, ['display', 'body', 'mono', 'arabic'], body));
 }
 
 // Stack: a menu. One row selected, its description beside it.

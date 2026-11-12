@@ -4,9 +4,10 @@ The locked system for this profile. Every sheet in `assets/` is generated from t
 
 ## System
 - Theme: custom (vibe: "cybersigil relic, retro dark fantasy menu")
-- Idea: a cold chrome sigil grown from the bytes of a name, kept in a warm, ash-dark menu like an old dark-fantasy game. The future, set in ruins.
+- Idea: cold chrome security marks made from the bytes of a name, kept in a warm, ash-dark menu like an old dark-fantasy game. The future, set in ruins.
 - Axes: dark/roman-serif/warm, posture: ash ground, bone ink, one ember light
-- Signature: the `wesper` sigil, drawn in ASCII. The six bytes `77 65 73 70 65 72` split into twelve nibbles; each grows one thorn off a central spine (length, angle and curve from its bits), mirrored left to right. Every stroke is sampled onto a character grid and each cell takes the character for the stroke's direction there: `-` `\` `|` `/`, with `.` at the tips.
+- Signature: the `wesper` lock, in ASCII. The shackle is drawn in direction characters (`-` `\` `|` `/`) in chrome; the body is a hex dump of the six bytes `77 65 73 70 65 72`, with a keyhole cut through it that drops whole bytes, never half of one.
+- Project sigils: each project's name grows a thorned sigil (one thorn per nibble off a central spine, mirrored), sampled onto the same character grid.
 
 ## Tokens
 ```css
@@ -25,16 +26,16 @@ The locked system for this profile. Every sheet in `assets/` is generated from t
   --color-chrome-4: oklch(48% 0.008 260);
   --font-display: "Cinzel", serif;
   --font-body: "EB Garamond", serif;
-  --font-outlier: "Azeret Mono", monospace; /* bytes and ASCII sigils only */
+  --font-outlier: "Azeret Mono", monospace; /* bytes and the ASCII marks only */
   --font-arabic: "Amiri", serif;            /* the word العربية only */
   --radius: 0;
 }
 ```
 
 ## Rules
-- Cold against warm: chrome belongs to the sigils and the `WESPER` wordmark, and nothing else. Ember is the one light: the selection cursor, the selected status, the diamond in a divider. Everything else is bone on ash.
+- Cold against warm: chrome belongs to the lock, the sigils and the `WESPER` wordmark, and nothing else. Ember is the one light: the selection cursor, the selected status, the diamond in a divider. Everything else is bone on ash.
 - Type: heads in Cinzel 600, capitals (Cinzel has no lowercase), tracked 0.08em; the wordmark tracked 0.2em. Body in EB Garamond 400 at 19px or more; lore lines and status words in its italic. Labels in EB Garamond 500, sentence case, never tracked.
-- Azeret Mono sets byte strings and the ASCII sigils, nothing else. ASCII is for sigils; never ASCII borders, banners or text art. Amiri sets العربية and nothing else. A language name is always written in its own script.
+- Azeret Mono sets byte strings and the ASCII marks (the lock and the sigils), nothing else. ASCII is for those marks; never ASCII borders, banners or text art. Inside the lock, the dump is muted and the metal is chrome. Amiri sets العربية and nothing else. A language name is always written in its own script.
 - Every panel is a menu frame: a 1px `rule` line, a 1px `rule-2` line 4px inside, and a small diamond on each outer corner. Square corners, no shadow, no blur, never a card in a card.
 - The stack is a menu: one row selected (the thing I'm solid in), its description in the panel beside it. The status word is always written, so colour is never the only signal.
 - Every project gets its own sigil grown from the bytes of its name, shown in a square frame like an item icon. A sigil is data, always rendered in ASCII by the generator; never draw or type one by hand.
