@@ -51,8 +51,8 @@ Shared:
 
 ## Motion
 - The render plays its 40 frames over 6 seconds, looping, frame by frame (`step-end`), so it moves like a real-time renderer.
-- The readout fades up 8px once, on load, then decodes itself on a 12 second loop: each value shows as its real binary, then its real hex, then the hex collapses into letters left to right (decoded text in `ink`, remaining hex in `muted`) until it reads plainly. Rows start 0.35s apart. The bytes are always the value's true bytes; where they run past the edge they are cropped, never faked.
-- Under `prefers-reduced-motion: reduce`, the render holds its first frame and the readout shows as plain text, no decoding.
+- The readout fades up 8px once, on load. Then it runs Matrix-style on a 12 second loop: columns of binary rain fall behind the values (brightest at the head, fading up the tail, 2.4 to 5 seconds a fall); every character starts as a flickering bit and locks into its letter left to right, rows 0.28s apart, with a little scatter. At about 10.6 seconds it scrambles back into bits and decodes again. Every digit on screen is a real bit of the readout's own text.
+- Under `prefers-reduced-motion: reduce`, the render holds its first frame and the readout shows as plain text with no rain and no flicker.
 
 ## Exports
 `assets/profile-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License) and embedded in the image.

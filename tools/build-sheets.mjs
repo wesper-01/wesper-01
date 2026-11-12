@@ -43,30 +43,27 @@ const FRAMES = Array.from({ length: R.frames }, (_, i) => {
   return frame(NAME, R.cols, R.rows, R.yaw * Math.sin(a), R.pitch + 0.05 * Math.cos(a), R.sx, R.sx * 1.7);
 });
 
-// The readout decodes itself: each value shows as its real binary, then its real hex, then the hex
-// collapses into letters left to right until it reads as plain text. It holds, then starts again.
-const DEC = { loop: 12, start: 0.6, stagger: 0.35, bin: 0.55, hex: 0.55, decode: 1.1, steps: 11 };
-const KEYFRAMES = [];
-const show = (t0, t1) => {
-  const id = `s${KEYFRAMES.length}`, p = t => (100 * t / DEC.loop).toFixed(3);
-  KEYFRAMES.push(t0 <= 0 ? `@keyframes ${id}{0%{opacity:1}${p(t1)}%,100%{opacity:0}}`
-    : t1 >= DEC.loop ? `@keyframes ${id}{0%{opacity:0}${p(t0)}%,100%{opacity:1}}`
-    : `@keyframes ${id}{0%{opacity:0}${p(t0)}%{opacity:1}${p(t1)}%,100%{opacity:0}}`);
-  return id;
-};
-const hexOf = s => [...Buffer.from(s, 'utf8')].map(b => b.toString(16).padStart(2, '0')).join('');
-const binOf = s => [...Buffer.from(s, 'utf8')].map(b => b.toString(2).padStart(8, '0')).join(' ');
-function decodeRow(v, i) {
-  const s0 = DEC.start + i * DEC.stagger, h0 = s0 + DEC.bin, d0 = h0 + DEC.hex, f0 = d0 + DEC.decode, dt = DEC.decode / DEC.steps;
-  const states = [{ text: binOf(v), cls: 'bin', id: show(0, h0) }, { text: hexOf(v), cls: 'hx', id: show(h0, d0) }];
-  for (let k = 1; k < DEC.steps; k++) {
-    const c = Math.round(v.length * k / DEC.steps);
-    states.push({ text: v.slice(0, c), rest: hexOf(v.slice(c)), cls: 'v', id: show(d0 + (k - 1) * dt, d0 + k * dt) });
+// The readout, Matrix-style. Binary rain falls through it; every character starts as a flickering
+// bit and locks into its letter as the rain passes, left to right with a little scatter. It holds,
+// scrambles back into bits, and decodes again. All digits are the real bits of the text.
+const DEC = { loop: 12, start: 0.9, row: 0.28, perChar: 0.035, scatter: 0.55, rescramble: 10.6, flick: 0.18 };
+const KEYFRAMES = new Map();
+const pct = t => (100 * t / DEC.loop).toFixed(2);
+const window_ = (t0, t1, inverse = false) => {   // visible between t0 and t1 (or outside it, if inverse)
+  t0 = Math.round(t0 * 20) / 20; t1 = Math.round(t1 * 20) / 20;
+  const key = `${inverse ? 'o' : 'w'}${t0}-${t1}`;
+  if (!KEYFRAMES.has(key)) {
+    const id = `k${KEYFRAMES.size}`, [on, off] = inverse ? [0, 1] : [1, 0];
+    KEYFRAMES.set(key, [id, `@keyframes ${id}{0%{opacity:${off}}${pct(t0)}%{opacity:${on}}${pct(t1)}%,100%{opacity:${off}}}`]);
   }
-  states.push({ text: v, cls: 'v fin', id: show(f0 - dt, DEC.loop) });
-  return states;
-}
+  return KEYFRAMES.get(key)[0];
+};
+let seed = 0x5eed;
+const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+const bitsOf = s => [...Buffer.from(s, 'utf8')].flatMap(b => [...b.toString(2).padStart(8, '0')]);
 let DECODE_CSS = '';
+
+
 
 const W = 960, X = 8, FS = W / R.cols / 0.6, LH = FS * 1.02;
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -80,9 +77,13 @@ text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre}
 .in{animation:in 1s cubic-bezier(.2,.7,.2,1) .3s backwards}
 @keyframes in{from{opacity:0;transform:translateY(8px)}}
 ${DECODE_CSS}
-.st{opacity:0;animation-duration:${DEC.loop}s;animation-timing-function:step-end;animation-iteration-count:infinite}
-.bin,.hx{fill:${t.muted}}
-@media (prefers-reduced-motion: reduce){.fr,.in,.st{animation:none}.fr,.st{opacity:0}.fr.f0,.st.fin{opacity:1}}</style>
+.w{animation-duration:${DEC.loop}s;animation-timing-function:step-end;animation-iteration-count:infinite}
+.fl{fill:${t.muted};animation:fl ${DEC.flick * 2}s step-end infinite}.fl.b{animation-delay:-${DEC.flick}s}
+@keyframes fl{0%{opacity:1}50%,100%{opacity:0}}
+.rain{fill:${t.muted};animation:fall linear infinite}
+@keyframes fall{from{transform:translateY(var(--a))}to{transform:translateY(var(--b))}}
+.lock{fill:${t.ink}}
+@media (prefers-reduced-motion: reduce){.fr,.in,.w,.fl,.rain{animation:none}.fr{opacity:0}.fr.f0{opacity:1}.rain,.scr{display:none}.lock{opacity:1}}</style>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${body}
 </svg>`;
@@ -98,12 +99,31 @@ const ROWS = [
 const profile = t => {
   const top = 8, renderH = R.rows * LH, y0 = top + renderH + 34;
   const frames = FRAMES.map((lines, i) => `<text class="r fr${i ? '' : ' f0'}" font-size="${FS.toFixed(2)}" style="animation-delay:${(i * R.loop / R.frames).toFixed(3)}s">${lines.map((l, j) => `<tspan x="0" y="${(top + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`).join('\n');
-  const vx = X + 190;
-  const info = `<clipPath id="col"><rect x="${vx}" y="${y0}" width="${W - X - vx}" height="${ROWS.length * 30 + 20}"/></clipPath>` +
-    ROWS.map(([k, v], i) => `<text class="k" x="${X}" y="${y0 + 30 + i * 30}" font-size="17">${k}</text>
-<g clip-path="url(#col)">${decodeRow(v, i).map(({ text, rest, cls, id }) => `<text class="st ${cls}" x="${vx}" y="${y0 + 30 + i * 30}" font-size="17" style="animation-name:${id}">${esc(text)}${rest ? `<tspan class="hx">${rest}</tspan>` : ''}</text>`).join('')}</g>`).join('\n');
+  const vx = X + 190, cw = 17 * 0.6, areaH = ROWS.length * 30 + 16, areaTop = y0 + 8;
+  const ALL = bitsOf(ROWS.map(r => r[1]).join(''));
+  // the rain: columns of real bits falling behind the values, brightest at the head
+  let rain = `<clipPath id="area"><rect x="${vx - 4}" y="${areaTop}" width="${W - X - vx + 4}" height="${areaH}"/></clipPath><g clip-path="url(#area)">`;
+  for (let c = 0, b = 0; vx + c * cw * 2 < W - X; c++) {
+    const n = 9 + Math.floor(rnd() * 7), dur = 2.4 + rnd() * 2.6, x = vx + c * cw * 2, colH = n * 16;
+    rain += `<text class="rain scr" font-size="13" style="--a:${-colH}px;--b:${areaH + 20}px;animation-duration:${dur.toFixed(2)}s;animation-delay:${(-rnd() * dur).toFixed(2)}s">` +
+      Array.from({ length: n }, (_, k) => `<tspan x="${x.toFixed(1)}" y="${(areaTop + k * 16).toFixed(1)}" fill-opacity="${(0.1 + 0.38 * (k / (n - 1)) ** 2).toFixed(2)}">${ALL[b++ % ALL.length]}</tspan>`).join('') + '</text>';
+  }
+  rain += '</g>';
+  // the values: each character flickers between its own bits, then locks into its letter
+  let bit = 0;
+  const info = rain + ROWS.map(([k, v], i) => {
+    const y = y0 + 30 + i * 30;
+    let row = `<text class="k" x="${X}" y="${y}" font-size="17">${k}</text>`;
+    [...v].forEach((ch, j) => {
+      const x = (vx + j * cw).toFixed(1), r = DEC.start + i * DEC.row + j * DEC.perChar + rnd() * DEC.scatter;
+      const bits = bitsOf(ch), b0 = bits[bit % 8], b1 = bits[(bit + 3) % 8]; bit++;
+      if (ch !== ' ') row += `<g class="w scr" style="animation-name:${window_(r, DEC.rescramble + rnd() * 0.6, true)}"><text class="fl" x="${x}" y="${y}" font-size="17">${b0}</text><text class="fl b" x="${x}" y="${y}" font-size="17">${b1}</text></g>`;
+      row += `<text class="w lock" x="${x}" y="${y}" font-size="17" style="animation-name:${window_(r, DEC.rescramble + rnd() * 0.6)}">${esc(ch)}</text>`;
+    });
+    return row;
+  }).join('\n');
   const H = y0 + 30 + ROWS.length * 30 + 10;
-  return [H, 'Rayane, engineering student, rendered as a rotating 3D ASCII render of the name. Each value below decodes from binary to hex to plain text. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
+  return [H, 'Rayane, engineering student, rendered as a rotating 3D ASCII render of the name. Each value below decodes out of falling binary, Matrix-style. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.', `
 ${frames}
 <g class="in"><text class="k" x="${X}" y="${y0 - 6}" font-size="14">rayane, engineering student</text>
 <line x1="${X}" y1="${y0 + 6.5}" x2="${W - X}" y2="${y0 + 6.5}" stroke="${t.rule}"/>
@@ -111,9 +131,9 @@ ${info}</g>`];
 };
 
 for (const [mode, t] of Object.entries(THEMES)) {
-  KEYFRAMES.length = 0;
+  KEYFRAMES.clear(); seed = 0x5eed;
   const [H, label, body] = profile(t);
-  DECODE_CSS = KEYFRAMES.join('');
+  DECODE_CSS = [...KEYFRAMES.values()].map(v => v[1]).join('');
   fs.writeFileSync(path.join(OUT, `profile-${mode}.svg`), svg(t, H, label, body));
 }
 console.log('built', fs.readdirSync(OUT).map(n => `${n} ${(fs.statSync(path.join(OUT, n)).size / 1024).toFixed(0)}KB`).join(', '));
