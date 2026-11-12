@@ -31,57 +31,53 @@ function hex(L, C, h) {
 
 const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base64');
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
-const FONTS = face('Albert Sans', 400, 'albert-sans-latin-400-normal.woff2') + face('Albert Sans', 500, 'albert-sans-latin-500-normal.woff2') + face('Albert Sans', 600, 'albert-sans-latin-600-normal.woff2');
-const photo = n => 'data:image/jpeg;base64,' + fs.readFileSync(path.join(ROOT, 'tools/photos', n)).toString('base64');
+const FONTS = face('Michroma', 400, 'michroma-latin-400-normal.woff2') + face('Albert Sans', 400, 'albert-sans-latin-400-normal.woff2') + face('Albert Sans', 500, 'albert-sans-latin-500-normal.woff2');
 const ARABIC = face('IBM Plex Sans Arabic', 500, 'ibm-plex-sans-arabic-arabic-500-normal.woff2');
 
 const W = 960, X = 4;
-// A word that cycles in place: each one shows for loop/n seconds. Without motion, the first stays.
-const cycle = (items, x, y, cls, size, loop) => items.map(([w, c], i) => `<text class="${c || cls} cyc${i ? '' : ' first'}" x="${x}" y="${y}" font-size="${size}" style="--loop:${loop}s;--d:${(loop / items.length) * i - 0.01}s;transform-box:fill-box">${w}</text>`).join('');
 const svg = (t, H, label, body, arabic = false) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
 <title>${label}</title>
 <style>${FONTS}${arabic ? ARABIC : ''}
 text{font-family:"Albert Sans",ui-sans-serif,sans-serif}
-.name{font-weight:600;letter-spacing:-0.035em;fill:${t.ink}}
-.h{font-weight:600;letter-spacing:-0.02em;fill:${t.ink}}
+.name{font-family:"Michroma",sans-serif;letter-spacing:0.16em;fill:${t.ink}}
+.h{font-family:"Michroma",sans-serif;letter-spacing:0.14em;fill:${t.ink}}
 .b{font-weight:400;fill:${t['ink-2']}}
 .l{font-weight:500;fill:${t.muted}}
 .v{font-weight:500;fill:${t.ink}}
 .ar{font-family:"IBM Plex Sans Arabic",sans-serif;font-weight:500;fill:${t.ink}}
-.cyc{opacity:0}.cyc.first{opacity:1}
-.cyc{animation:cycle var(--loop) cubic-bezier(.2,.7,.2,1) infinite both;animation-delay:var(--d)}
-@keyframes cycle{0%{opacity:0;transform:translateY(8px)}5%,28%{opacity:1;transform:none}33%,100%{opacity:0;transform:translateY(-8px)}}
+.scan{animation:scan 6s cubic-bezier(.65,0,.35,1) infinite}
+@keyframes scan{0%{transform:translateX(var(--from));opacity:0}6%{opacity:1}55%,100%{transform:none;opacity:1}}
 .pulse{opacity:0;animation:travel 5.2s cubic-bezier(.55,0,.75,1) infinite}
-@keyframes travel{0%{opacity:0;transform:translateX(0)}8%{opacity:1}82%{opacity:1}92%,100%{opacity:0;transform:translateX(var(--dist))}}
-@media (prefers-reduced-motion: reduce){.cyc,.pulse{animation:none}.cyc{opacity:0}.cyc.first{opacity:1}.pulse{opacity:0}}</style>
+@keyframes travel{0%{opacity:0;transform:translateX(0)}8%,84%{opacity:1}94%,100%{opacity:0;transform:translateX(var(--dist))}}
+@media (prefers-reduced-motion: reduce){.scan,.pulse{animation:none}.pulse{opacity:0}}</style>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${body}
 </svg>`;
 const rule = (t, y, x1 = X, x2 = W - X) => `<line x1="${x1}" y1="${y + .5}" x2="${x2}" y2="${y + .5}" stroke="${t.rule}"/>`;
 
 const pages = {
-  // Header: a greeting cycling through the four languages I speak, then the name.
+  // Header: the name, crossed by the red scan line; who I am; where I'm from and what I speak.
   header: t => {
-    const H = 330, top = 30;
+    const H = 318, nameEnd = 452;
     const langs = [['ar', 'العربية', 50], ['v', 'Français', 66], ['v', 'English', 58], ['v', 'Español', 62]];
     let lx = 520, speaks = '';
-    langs.forEach(([c, w, width]) => { speaks += `<text class="${c}" x="${lx}" y="${top + 270}" font-size="17">${w}</text>`; lx += width + 18; });
-    speaks += `<text class="l" x="${lx - 12}" y="${top + 270}" font-size="17">(learning)</text>`;
-    const hello = cycle([['Hello'], ['مرحبا', 'l ar'], ['Bonjour'], ['Hola']], X, top + 14, 'l', 20, 12);
-    return [H, 'Hello, مرحبا, Bonjour, Hola. Rayane. Engineering student. Python first, working my way down the stack toward systems and security. Based in Guadix, Spain. From Morocco. Speaks Arabic, French, English and Spanish (learning).', `
-${hello}
-<text class="name" x="${X - 4}" y="${top + 104}" font-size="96">Rayane</text>
-<text class="b" x="${X}" y="${top + 152}" font-size="22">Engineering student. Python first, working my way down the stack</text>
-<text class="b" x="${X}" y="${top + 182}" font-size="22">toward systems and security.</text>
-${rule(t, top + 220)}
-<text class="l" x="${X}" y="${top + 246}" font-size="15">Based in</text><text class="v" x="${X}" y="${top + 270}" font-size="17">Guadix, Spain</text>
-<text class="l" x="260" y="${top + 246}" font-size="15">From</text><text class="v" x="260" y="${top + 270}" font-size="17">Morocco</text>
-<text class="l" x="520" y="${top + 246}" font-size="15">Speaks</text>${speaks}`, true];
+    langs.forEach(([c, w, width]) => { speaks += `<text class="${c}" x="${lx}" y="288" font-size="17">${w}</text>`; lx += width + 18; });
+    speaks += `<text class="l" x="${lx - 12}" y="288" font-size="17">(learning)</text>`;
+    return [H, 'RAYANE. Engineering student working down the stack, from Python toward systems and security. Based in Guadix, Spain. From Morocco. Speaks Arabic, French, English and Spanish (learning).', `
+<text class="name" x="${X - 4}" y="96" font-size="62">RAYANE</text>
+<rect class="scan" x="${nameEnd}" y="42" width="2" height="66" fill="${t.signal}" style="--from:${-nameEnd}px"/>
+<rect x="${X}" y="126" width="56" height="2" fill="${t.signal}"/>
+<text class="b" x="${X}" y="172" font-size="21">Engineering student working down the stack,</text>
+<text class="b" x="${X}" y="200" font-size="21">from Python toward systems and security.</text>
+${rule(t, 236)}
+<text class="l" x="${X}" y="262" font-size="15">Based in</text><text class="v" x="${X}" y="288" font-size="17">Guadix, Spain</text>
+<text class="l" x="260" y="262" font-size="15">From</text><text class="v" x="260" y="288" font-size="17">Morocco</text>
+<text class="l" x="520" y="262" font-size="15">Speaks</text>${speaks}`, true];
   },
 
-  // Stack: one line from high level into the machine, which is a real chip. A pulse runs down it from Python.
+  // Stack: one line from high level to the machine; the red pulse runs from Python down to Assembly.
   stack: t => {
-    const H = 380, ax = 170, P = 220, px = W - X - P, py = ax - P / 2 + 20, x1 = X + 48, x2 = px - 64;
+    const H = 330, ax = 140, x1 = X + 48, x2 = W - X - 48;
     const pts = [['HTML, CSS', 'learning', 0], ['Python', 'solid', 0.24], ['Java', 'learning', 0.46], ['C', 'curious', 0.72], ['Assembly', 'curious', 1]];
     let marks = '', pyX = 0;
     for (const [name, status, at] of pts) {
@@ -93,34 +89,17 @@ ${rule(t, top + 220)}
       marks += `<text class="v" x="${x}" y="${ax - 24}" font-size="18" text-anchor="middle">${name}</text>
 <text class="l" x="${x}" y="${ax + 34}" font-size="15" text-anchor="middle">${status}</text>`;
     }
-    return [H, 'Down the stack, from high level into the machine, shown as a photograph of a silicon chip under a microscope. HTML and CSS: learning. Python: solid. Java: learning. C: curious. Assembly: curious. A small pulse travels from Python down the line into the chip. Next: security, across every layer, and AI systems that keep working when an API fails.', `
-<text class="h" x="${X}" y="40" font-size="30">Down the stack</text>
-<line x1="${X}" y1="${ax + .5}" x2="${px}" y2="${ax + .5}" stroke="${t.rule}"/>
-<circle class="pulse" cx="${pyX}" cy="${ax}" r="3" fill="${t.ink}" style="--dist:${(px - pyX).toFixed(0)}px"/>
+    return [H, 'Down the stack, from high level to the machine. HTML and CSS: learning. Python: solid. Java: learning. C: curious. Assembly: curious. A red pulse runs from Python down to Assembly. Next: security, across every layer, and AI systems that keep working when an API fails.', `
+<text class="h" x="${X}" y="36" font-size="20">DOWN THE STACK</text>
+<line x1="${X}" y1="${ax + .5}" x2="${W - X}" y2="${ax + .5}" stroke="${t.rule}"/>
 ${marks}
-<image href="${photo('chip.jpg')}" x="${px}" y="${py}" width="${P}" height="${P}" preserveAspectRatio="xMidYMid slice" opacity="${t === THEMES.dark ? 0.82 : 1}"/>
+<circle class="pulse" cx="${pyX}" cy="${ax}" r="3.5" fill="${t.signal}" style="--dist:${(x2 - pyX).toFixed(0)}px"/>
 <text class="l" x="${X}" y="${ax + 74}" font-size="15">High level</text>
-<text class="l" x="${px}" y="${py + P + 24}" font-size="15">The machine: a silicon chip, 50x</text>
-${rule(t, 300, X, px - 28)}
-<text class="l" x="${X}" y="${336}" font-size="15">Next</text>
-<text class="v" x="160" y="336" font-size="18">Security, across every layer</text>
-<text class="v" x="160" y="364" font-size="18">AI systems that keep working when an API fails</text>`];
-  },
-
-  // Projects: decided, with the goal it plans for cycling: bulk, cut, recomp.
-  projects: t => {
-    const H = 300, py = 76, PW = 136, PH = 172, tx = X + PW + 32;
-    return [H, 'Projects. decided: picks your meals, portions and groceries. You choose the goal: bulk, cut or recomp, and it makes the calls. Built with HTML, open source. Shown with a photograph of a hand gripping a dumbbell.', `
-<text class="h" x="${X}" y="40" font-size="30">Projects</text>
-<image href="${photo('dumbbell.jpg')}" x="${X}" y="${py}" width="${PW}" height="${PH}" preserveAspectRatio="xMidYMid slice" opacity="${t === THEMES.dark ? 0.85 : 1}"/>
-<text class="h" x="${tx}" y="${py + 24}" font-size="22">decided</text>
-<text class="b" x="${tx}" y="${py + 58}" font-size="18">Picks your meals, portions and groceries.</text>
-<text class="b" x="${tx}" y="${py + 84}" font-size="18">You choose the goal, it makes the calls.</text>
-<text class="l" x="${tx}" y="${py + 128}" font-size="15">Goal</text>
-${cycle([['bulk'], ['cut'], ['recomp']], tx, py + 166, 'name', 40, 7.5)}
-<text class="l" x="${W - X}" y="${py + 24}" font-size="15" text-anchor="end">HTML</text>
-<text class="l" x="${W - X}" y="${py + 48}" font-size="15" text-anchor="end">Open source</text>
-${rule(t, py + PH + 24)}`];
+<text class="l" x="${W - X}" y="${ax + 74}" font-size="15" text-anchor="end">Machine</text>
+${rule(t, 244)}
+<text class="l" x="${X}" y="282" font-size="15">Next</text>
+<text class="v" x="160" y="282" font-size="18">Security, across every layer</text>
+<text class="v" x="160" y="310" font-size="18">AI systems that keep working when an API fails</text>`];
   },
 };
 
