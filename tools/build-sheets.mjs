@@ -63,12 +63,12 @@ const pages = {
     let lx = 520, speaks = '';
     langs.forEach(([c, w, width]) => { speaks += `<text class="${c}" x="${lx}" y="288" font-size="17">${w}</text>`; lx += width + 18; });
     speaks += `<text class="l" x="${lx - 12}" y="288" font-size="17">(learning)</text>`;
-    return [H, 'RAYANE. Engineering student working down the stack, from Python toward systems and security. Based in Guadix, Spain. From Morocco. Speaks Arabic, French, English and Spanish (learning).', `
+    return [H, 'RAYANE. Engineering student. Good with Python, teaching myself C, assembly, malware analysis and red teaming. Based in Guadix, Spain. From Morocco. Speaks Arabic, French, English and Spanish (learning).', `
 <text class="name" x="${X - 4}" y="96" font-size="62">RAYANE</text>
 <rect class="scan" x="${nameEnd}" y="42" width="2" height="66" fill="${t.signal}" style="--from:${-nameEnd}px"/>
 <rect x="${X}" y="126" width="56" height="2" fill="${t.signal}"/>
-<text class="b" x="${X}" y="172" font-size="21">Engineering student working down the stack,</text>
-<text class="b" x="${X}" y="200" font-size="21">from Python toward systems and security.</text>
+<text class="b" x="${X}" y="172" font-size="21">Engineering student. Good with Python, teaching myself</text>
+<text class="b" x="${X}" y="200" font-size="21">C, assembly, malware analysis and red teaming.</text>
 ${rule(t, 236)}
 <text class="l" x="${X}" y="262" font-size="15">Based in</text><text class="v" x="${X}" y="288" font-size="17">Guadix, Spain</text>
 <text class="l" x="260" y="262" font-size="15">From</text><text class="v" x="260" y="288" font-size="17">Morocco</text>
@@ -78,18 +78,18 @@ ${rule(t, 236)}
   // Stack: one line from high level to the machine; the red pulse runs from Python down to Assembly.
   stack: t => {
     const H = 330, ax = 140, x1 = X + 48, x2 = W - X - 48;
-    const pts = [['HTML, CSS', 'learning', 0], ['Python', 'solid', 0.24], ['Java', 'learning', 0.46], ['C', 'curious', 0.72], ['Assembly', 'curious', 1]];
+    const pts = [['HTML, CSS', 'basic', 0], ['Python', 'good', 0.24], ['Java', 'basic', 0.46], ['C', 'learning', 0.72], ['Assembly', 'learning', 1]];
     let marks = '', pyX = 0;
     for (const [name, status, at] of pts) {
       const x = x1 + (x2 - x1) * at;
-      if (status === 'solid') pyX = x;
-      marks += status === 'solid' ? `<circle cx="${x}" cy="${ax}" r="7" fill="${t.ink}"/>`
-        : status === 'learning' ? `<circle cx="${x}" cy="${ax}" r="6.25" fill="${t.paper}" stroke="${t.ink}" stroke-width="1.5"/>`
+      if (status === 'good') pyX = x;
+      marks += status === 'good' ? `<circle cx="${x}" cy="${ax}" r="7" fill="${t.ink}"/>`
+        : status === 'basic' ? `<circle cx="${x}" cy="${ax}" r="6.25" fill="${t.paper}" stroke="${t.ink}" stroke-width="1.5"/>`
         : `<circle cx="${x}" cy="${ax}" r="3.5" fill="${t.muted}"/>`;
       marks += `<text class="v" x="${x}" y="${ax - 24}" font-size="18" text-anchor="middle">${name}</text>
 <text class="l" x="${x}" y="${ax + 34}" font-size="15" text-anchor="middle">${status}</text>`;
     }
-    return [H, 'Down the stack, from high level to the machine. HTML and CSS: learning. Python: solid. Java: learning. C: curious. Assembly: curious. A red pulse runs from Python down to Assembly. Next: security, across every layer, and AI systems that keep working when an API fails.', `
+    return [H, 'Down the stack, from high level to the machine. HTML and CSS: basic. Python: good. Java: basic. C: learning. Assembly: learning. A red pulse runs from Python down to Assembly. Also teaching myself: malware analysis and red teaming.', `
 <text class="h" x="${X}" y="36" font-size="20">DOWN THE STACK</text>
 <line x1="${X}" y1="${ax + .5}" x2="${W - X}" y2="${ax + .5}" stroke="${t.rule}"/>
 ${marks}
@@ -97,9 +97,9 @@ ${marks}
 <text class="l" x="${X}" y="${ax + 74}" font-size="15">High level</text>
 <text class="l" x="${W - X}" y="${ax + 74}" font-size="15" text-anchor="end">Machine</text>
 ${rule(t, 244)}
-<text class="l" x="${X}" y="282" font-size="15">Next</text>
-<text class="v" x="160" y="282" font-size="18">Security, across every layer</text>
-<text class="v" x="160" y="310" font-size="18">AI systems that keep working when an API fails</text>`];
+<text class="l" x="${X}" y="282" font-size="15">Teaching myself</text>
+<text class="v" x="160" y="282" font-size="18">Malware analysis</text>
+<text class="v" x="160" y="310" font-size="18">Red teaming</text>`];
   },
 };
 

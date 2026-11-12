@@ -46,7 +46,7 @@ Shared:
 - One colour, red, used only as the signal: the short line under the name, the scan line, the pulse on the stack. Never on text, never as a fill, never a glow.
 - Hairlines are the only other lines; 1px, in `rule`. No boxes, frames, cards, shadows, gradients or photographs.
 - One left edge. Nothing centred except labels under their marks.
-- On the stack line, a filled circle is solid, a ring is learning, a small dot is curious. The status word is always written beneath.
+- On the stack line, a filled circle is good, a ring is basic, a small dot is learning (on my own). The status word is always written beneath.
 - A language name is written in its own script.
 - No projects until there is one worth leading with. No emoji, ASCII art, sigils, middle-dot lists, em dashes, eyebrows, invented numbers or slogans.
 
