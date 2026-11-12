@@ -1,7 +1,16 @@
-<img src="assets/header.svg" width="100%" alt="WESPER. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). An ASCII padlock whose body is a hex dump of the bytes of wesper, 77 65 73 70 65 72, with a keyhole cut through it.">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
+  <img src="assets/header-light.svg" width="100%" alt="Rayane. Engineering student. Python first, working my way down the stack toward systems and security. Based in Guadix, Spain. From Morocco. Speaks Arabic, French, English and Spanish (learning).">
+</picture>
 
-<img src="assets/stack.svg" width="100%" alt="The stack. Top is furthest from the machine; I'm working my way down. AI systems: next. Web, HTML and CSS: learning. Python: solid, the language I'm good with and the one I build in. Java: learning. C, the basics: curious. Assembly, the basics: curious. Security, across every layer: next.">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/stack-dark.svg">
+  <img src="assets/stack-light.svg" width="100%" alt="Down the stack, from high level to the machine. HTML and CSS: learning. Python: solid. Java: learning. C: curious. Assembly: curious. Next: security, across every layer, and AI systems that keep working when an API fails.">
+</picture>
 
-<a href="https://github.com/wesper-01/decided"><img src="assets/projects.svg" width="100%" alt="Projects. decided: picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source. Its sigil is grown from the bytes of its name."></a>
-
-<sub>Design system in [DESIGN.md](DESIGN.md). Every sheet is generated from it by `node tools/build-sheets.mjs`.</sub>
+<a href="https://github.com/wesper-01/decided">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/projects-dark.svg">
+  <img src="assets/projects-light.svg" width="100%" alt="Projects. decided: picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source.">
+</picture>
+</a>

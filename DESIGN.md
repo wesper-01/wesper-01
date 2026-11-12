@@ -1,49 +1,54 @@
 # Design: wesper
 
-The locked system for this profile. Every sheet in `assets/` is generated from this file by `tools/build-sheets.mjs`, which reads the token block below. Change it on purpose; the file is the rule.
+The locked system for this profile. Every image in `assets/` is generated from this file by `tools/build-sheets.mjs`, which reads the token blocks below. Change it on purpose; the file is the rule.
 
 ## System
-- Theme: custom (vibe: "cybersigil relic, retro dark fantasy menu")
-- Idea: cold chrome security marks made from the bytes of a name, kept in a warm, ash-dark menu like an old dark-fantasy game. The future, set in ruins.
-- Axes: dark/roman-serif/warm, posture: ash ground, bone ink, one ember light
-- Signature: the `wesper` lock, in ASCII. The shackle is drawn in direction characters (`-` `\` `|` `/`) in chrome; the body is a hex dump of the six bytes `77 65 73 70 65 72`, with a keyhole cut through it that drops whole bytes, never half of one.
-- Project sigils: each project's name grows a thorned sigil (one thorn per nibble off a central spine, mirrored), sampled onto the same character grid.
+- Theme: custom (vibe: "quiet, exact, premium, nothing extra")
+- Idea: the page disappears into GitHub. Each image is painted on GitHub's own background, in a light and a dark version, so the profile reads as type set on the page, not pictures pasted on it.
+- Axes: light and dark/grotesk-sans/neutral, posture: no accent, hierarchy from size, weight and grey alone
+- Signature: the stack drawn as one line, from high level to the machine, with each language placed on it and marked by how well I know it.
 
 ## Tokens
+Light, shown to visitors on GitHub's light theme:
 ```css
 :root {
-  --color-paper: oklch(11% 0.006 60);      /* ash black */
-  --color-paper-2: oklch(15.5% 0.009 60);  /* a selected row, a lit panel */
-  --color-ink: oklch(90% 0.02 80);         /* bone */
-  --color-ink-2: oklch(78% 0.02 80);
-  --color-muted: oklch(58% 0.015 70);
-  --color-rule: oklch(42% 0.02 70);        /* frame line */
-  --color-rule-2: oklch(26% 0.014 70);     /* inner frame line, row hairlines */
-  --color-ember: oklch(72% 0.14 62);       /* the one warm light */
-  --color-chrome-1: oklch(99% 0 0);        /* chrome is a gradient of these four, top to bottom */
-  --color-chrome-2: oklch(70% 0.006 260);
-  --color-chrome-3: oklch(93% 0.003 260);
-  --color-chrome-4: oklch(48% 0.008 260);
-  --font-display: "Cinzel", serif;
-  --font-body: "EB Garamond", serif;
-  --font-outlier: "Azeret Mono", monospace; /* bytes and the ASCII marks only */
-  --font-arabic: "Amiri", serif;            /* the word العربية only */
-  --radius: 0;
+  --color-paper: #ffffff;                  /* GitHub light background, exactly */
+  --color-ink: oklch(21% 0.008 260);
+  --color-ink-2: oklch(42% 0.01 260);
+  --color-muted: oklch(56% 0.01 260);
+  --color-rule: oklch(90% 0.004 260);
+}
+```
+Dark, shown on GitHub's dark theme:
+```css
+[data-theme="dark"] {
+  --color-paper: #0d1117;                  /* GitHub dark background, exactly */
+  --color-ink: oklch(95% 0.004 260);
+  --color-ink-2: oklch(77% 0.008 260);
+  --color-muted: oklch(60% 0.012 260);
+  --color-rule: oklch(30% 0.014 260);
+}
+```
+Shared:
+```css
+:root {
+  --font-display: "Albert Sans", ui-sans-serif, sans-serif;
+  --font-body: "Albert Sans", ui-sans-serif, sans-serif;
+  --font-arabic: "IBM Plex Sans Arabic", sans-serif; /* the word العربية only */
 }
 ```
 
 ## Rules
-- Cold against warm: chrome belongs to the lock, the sigils and the `WESPER` wordmark, and nothing else. Ember is the one light: the selection cursor, the selected status, the diamond in a divider. Everything else is bone on ash.
-- Type: heads in Cinzel 600, capitals (Cinzel has no lowercase), tracked 0.08em; the wordmark tracked 0.2em. Body in EB Garamond 400 at 19px or more; lore lines and status words in its italic. Labels in EB Garamond 500, sentence case, never tracked.
-- Azeret Mono sets byte strings and the ASCII marks (the lock and the sigils), nothing else. ASCII is for those marks; never ASCII borders, banners or text art. Inside the lock, the dump is muted and the metal is chrome. Amiri sets العربية and nothing else. A language name is always written in its own script.
-- Every panel is a menu frame: a 1px `rule` line, a 1px `rule-2` line 4px inside, and a small diamond on each outer corner. Square corners, no shadow, no blur, never a card in a card.
-- The stack is a menu: one row selected (the thing I'm solid in), its description in the panel beside it. The status word is always written, so colour is never the only signal.
-- Every project gets its own sigil grown from the bytes of its name, shown in a square frame like an item icon. A sigil is data, always rendered in ASCII by the generator; never draw or type one by hand.
-- Never a glow, a gradient on a surface, an invented stat or level, or an emoji. No middle-dot lists, no em dashes, no eyebrows.
-- Inspired by a genre, never copied from a game: no names, phrases, icons or layouts lifted from one.
+- One family. Albert Sans 600 for the name and heads, tracked tight (-0.035em on the name, -0.02em on heads); 400 for text at 18px or more; 500 for labels, a step smaller, in `muted`, sentence case, never tracked or capitalised.
+- No colour. Ink, a second ink, a muted grey and a hairline. Nothing is highlighted with a hue.
+- Hairlines are the only lines; 1px, in `rule`. No boxes, frames, cards, shadows, gradients, glows or rounded panels.
+- Content aligns to one left edge. Generous space; nothing is centred.
+- On the stack line, a filled circle is solid, a ring is learning, a small dot is curious. The status word is always written beneath, so the mark is never the only signal.
+- A language name is written in its own script.
+- No emoji, no ASCII art, no middle-dot lists, no em dashes, no eyebrows, no invented numbers, no slogans.
 
 ## Motion
-- Still. GitHub serves these as images; nothing moves.
+- Still.
 
 ## Exports
-`assets/header.svg`, `assets/stack.svg`, `assets/projects.svg`, built by `node tools/build-sheets.mjs`. Fonts are vendored in `tools/fonts/` (SIL Open Font License) and embedded in each sheet.
+`assets/{header,stack,projects}-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. Fonts are vendored in `tools/fonts/` (SIL Open Font License) and embedded in each image.

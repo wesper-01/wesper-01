@@ -1,4 +1,5 @@
-// Builds the profile sheets in assets/ from DESIGN.md. Run: node tools/build-sheets.mjs
+// Builds the profile images in assets/ from DESIGN.md, in a light and a dark version.
+// Run: node tools/build-sheets.mjs
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,11 +7,20 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'assets');
 fs.mkdirSync(OUT, { recursive: true });
+for (const old of fs.readdirSync(OUT)) if (old.endsWith('.svg')) fs.unlinkSync(path.join(OUT, old));
 
-// Tokens come from DESIGN.md, nowhere else.
+// Tokens come from DESIGN.md, nowhere else: the :root block is light, [data-theme="dark"] is dark.
 const design = fs.readFileSync(path.join(ROOT, 'DESIGN.md'), 'utf8');
-const tok = {};
-for (const [, name, L, C, H] of design.matchAll(/--color-([\w-]+):\s*oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)/g)) tok[name] = hex(+L / 100, +C, +H);
+const block = sel => design.match(new RegExp(sel.replace(/[[\]"=]/g, '\\$&') + '\\s*\\{([^}]*)\\}'))[1];
+const read = css => {
+  const t = {};
+  for (const [, k, v] of css.matchAll(/--color-([\w-]+):\s*(#[0-9a-f]{6}|oklch\([^)]*\))/gi)) {
+    const m = v.match(/oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)/);
+    t[k] = m ? hex(+m[1] / 100, +m[2], +m[3]) : v;
+  }
+  return t;
+};
+const THEMES = { light: read(block(':root')), dark: read(block('[data-theme="dark"]')) };
 
 function hex(L, C, h) {
   const r = h * Math.PI / 180, A = C * Math.cos(r), B = C * Math.sin(r);
@@ -20,183 +30,84 @@ function hex(L, C, h) {
 }
 
 const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base64');
-const face = (fam, w, file, style = 'normal') => `@font-face{font-family:"${fam}";font-weight:${w};font-style:${style};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
-const fonts = {
-  display: face('Cinzel', 400, 'cinzel-latin-400-normal.woff2') + face('Cinzel', 600, 'cinzel-latin-600-normal.woff2'),
-  body: face('EB Garamond', 400, 'eb-garamond-latin-400-normal.woff2') + face('EB Garamond', 500, 'eb-garamond-latin-500-normal.woff2') + face('EB Garamond', 400, 'eb-garamond-latin-400-italic.woff2', 'italic'),
-  mono: face('Azeret Mono', 500, 'azeret-mono-latin-500-normal.woff2'),
-  arabic: face('Amiri', 400, 'amiri-arabic-400-normal.woff2'),
-};
-const css = need => `${need.map(n => fonts[n]).join('')}
-.h{font-family:"Cinzel",serif;font-weight:600;letter-spacing:0.08em;fill:${tok.ink}}
-.w{font-family:"Cinzel",serif;font-weight:600;letter-spacing:0.2em}
-.b{font-family:"EB Garamond",serif;font-weight:400;fill:${tok['ink-2']}}
-.i{font-family:"EB Garamond",serif;font-weight:400;font-style:italic;fill:${tok['ink-2']}}
-.l{font-family:"EB Garamond",serif;font-weight:500;fill:${tok.muted}}
-.v{font-family:"EB Garamond",serif;font-weight:500;fill:${tok.ink}}
-.m{font-family:"Azeret Mono",monospace;font-weight:500;fill:${tok.muted}}
-.a{font-family:"Azeret Mono",monospace;font-weight:500;white-space:pre}
-.ar{font-family:"Amiri",serif;font-weight:400;fill:${tok.ink}}`;
+const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
+const FONTS = face('Albert Sans', 400, 'albert-sans-latin-400-normal.woff2') + face('Albert Sans', 500, 'albert-sans-latin-500-normal.woff2') + face('Albert Sans', 600, 'albert-sans-latin-600-normal.woff2');
+const ARABIC = face('IBM Plex Sans Arabic', 500, 'ibm-plex-sans-arabic-arabic-500-normal.woff2');
 
-const chrome = `<defs><linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
-<stop offset="0" stop-color="${tok['chrome-1']}"/><stop offset="0.42" stop-color="${tok['chrome-2']}"/>
-<stop offset="0.55" stop-color="${tok['chrome-3']}"/><stop offset="1" stop-color="${tok['chrome-4']}"/></linearGradient></defs>`;
-
-const W = 960;
-const svg = (H, label, need, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
+const W = 960, X = 4;
+const svg = (t, H, label, body, arabic = false) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
 <title>${label}</title>
-<style>${css(need)}</style>
-${chrome}
-<rect width="${W}" height="${H}" fill="${tok.paper}"/>
+<style>${FONTS}${arabic ? ARABIC : ''}
+text{font-family:"Albert Sans",ui-sans-serif,sans-serif}
+.name{font-weight:600;letter-spacing:-0.035em;fill:${t.ink}}
+.h{font-weight:600;letter-spacing:-0.02em;fill:${t.ink}}
+.b{font-weight:400;fill:${t['ink-2']}}
+.l{font-weight:500;fill:${t.muted}}
+.v{font-weight:500;fill:${t.ink}}
+.ar{font-family:"IBM Plex Sans Arabic",sans-serif;font-weight:500;fill:${t.ink}}</style>
+<rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${body}
 </svg>`;
+const rule = (t, y, x1 = X, x2 = W - X) => `<line x1="${x1}" y1="${y + .5}" x2="${x2}" y2="${y + .5}" stroke="${t.rule}"/>`;
 
-// Ornament: the menu frame, a diamond, a divider. These are the only ornaments.
-const diamond = (x, y, s, fill) => `<rect x="${x - s / 2}" y="${y - s / 2}" width="${s}" height="${s}" fill="${fill}" transform="rotate(45 ${x} ${y})"/>`;
-const frame = (x, y, w, h) => `<rect x="${x + .5}" y="${y + .5}" width="${w - 1}" height="${h - 1}" fill="none" stroke="${tok.rule}"/>
-<rect x="${x + 4.5}" y="${y + 4.5}" width="${w - 9}" height="${h - 9}" fill="none" stroke="${tok['rule-2']}"/>
-${[[x, y], [x + w, y], [x, y + h], [x + w, y + h]].map(([a, b]) => diamond(a, b, 7, tok.rule)).join('')}`;
-const divider = (cx, y, w) => `<line x1="${cx - w / 2}" y1="${y + .5}" x2="${cx - 10}" y2="${y + .5}" stroke="${tok.rule}"/>
-<line x1="${cx + 10}" y1="${y + .5}" x2="${cx + w / 2}" y2="${y + .5}" stroke="${tok.rule}"/>${diamond(cx, y + .5, 6, tok.ember)}`;
+const pages = {
+  header: t => {
+    const H = 300;
+    const langs = [['ar', 'العربية', 50], ['v', 'Français', 66], ['v', 'English', 58], ['v', 'Español', 62]];
+    let lx = 520, speaks = '';
+    langs.forEach(([c, w, width]) => { speaks += `<text class="${c}" x="${lx}" y="270" font-size="17">${w}</text>`; lx += width + 18; });
+    speaks += `<text class="l" x="${lx - 12}" y="270" font-size="17">(learning)</text>`;
+    return [H, 'Rayane. Engineering student. Python first, working my way down the stack toward systems and security. Based in Guadix, Spain. From Morocco. Speaks Arabic, French, English and Spanish (learning).', `
+<text class="name" x="${X - 4}" y="104" font-size="96">Rayane</text>
+<text class="b" x="${X}" y="152" font-size="22">Engineering student. Python first, working my way down the stack</text>
+<text class="b" x="${X}" y="182" font-size="22">toward systems and security.</text>
+${rule(t, 220)}
+<text class="l" x="${X}" y="246" font-size="15">Based in</text><text class="v" x="${X}" y="270" font-size="17">Guadix, Spain</text>
+<text class="l" x="260" y="246" font-size="15">From</text><text class="v" x="260" y="270" font-size="17">Morocco</text>
+<text class="l" x="520" y="246" font-size="15">Speaks</text>${speaks}`, true];
+  },
 
-// The sigil, drawn in ASCII. Each nibble of the name grows one thorn off a central spine, mirrored left to right;
-// each stroke is sampled onto a character grid and every cell takes the
-// character that matches the stroke's direction there (- \ | /), tips become '.', the spine stays '|'.
-function asciiSigil(name, cx, top, H, fs) {
-  const nib = [...Buffer.from(name, 'ascii')].flatMap(b => [b >> 4, b & 15]);
-  const n = nib.length, cw = fs * 0.6, ch = fs * 1.05;
-  const cols = Math.ceil(H * 1.02 / cw) | 1, rows = Math.ceil(H / ch) + 1, x0 = cx - (cols * cw) / 2;
-  const grid = Array.from({ length: rows }, () => Array(cols).fill(' '));
-  const put = (x, y, c) => { const i = Math.floor((y - top) / ch), j = Math.floor((x - x0) / cw); if (i >= 0 && i < rows && j >= 0 && j < cols) grid[i][j] = c; };
-  const dir = (dx, dy) => { let a = Math.atan2(dy, dx) * 180 / Math.PI; a = ((a % 180) + 180) % 180; return a < 22.5 || a >= 157.5 ? '-' : a < 67.5 ? '\\' : a < 112.5 ? '|' : '/'; };
-  const quad = (ax, ay, bx, by, ex, ey) => {
-    for (let t = 0; t <= 1; t += 0.004) {
-      const u = 1 - t, x = u * u * ax + 2 * u * t * bx + t * t * ex, y = u * u * ay + 2 * u * t * by + t * t * ey;
-      put(x, y, t > 0.95 ? '.' : dir(2 * u * (bx - ax) + 2 * t * (ex - bx), 2 * u * (by - ay) + 2 * t * (ey - by)));
+  stack: t => {
+    const H = 330, ax = 140, x1 = X + 16, x2 = W - X - 16;
+    const pts = [['HTML, CSS', 'learning', 0.04], ['Python', 'solid', 0.26], ['Java', 'learning', 0.46], ['C', 'curious', 0.72], ['Assembly', 'curious', 0.96]];
+    let marks = '';
+    for (const [name, status, at] of pts) {
+      const x = x1 + (x2 - x1) * at;
+      marks += status === 'solid' ? `<circle cx="${x}" cy="${ax}" r="7" fill="${t.ink}"/>`
+        : status === 'learning' ? `<circle cx="${x}" cy="${ax}" r="6.25" fill="${t.paper}" stroke="${t.ink}" stroke-width="1.5"/>`
+        : `<circle cx="${x}" cy="${ax}" r="3.5" fill="${t.muted}"/>`;
+      marks += `<text class="v" x="${x}" y="${ax - 24}" font-size="18" text-anchor="middle">${name}</text>
+<text class="l" x="${x}" y="${ax + 34}" font-size="15" text-anchor="middle">${status}</text>`;
     }
-  };
-  const sum = nib.reduce((a, b) => a + b, 0), r = H * 0.3, g = (sum % 60 + 20) * Math.PI / 180;
-  for (const [a0, a1] of [[g, Math.PI - g / 2], [Math.PI + g / 2, 2 * Math.PI - g]])
-    for (let a = a0; a <= a1; a += 0.004) put(cx + r * Math.sin(a), top + H / 2 - r * Math.cos(a), dir(Math.cos(a), Math.sin(a)));
-  nib.forEach((v, i) => {
-    const y = top + H * (0.1 + 0.8 * (i + 0.5) / n), L = H * (0.16 + 0.3 * v / 15), up = v & 1 ? -1 : 1;
-    const ang = (12 + 16 * ((v >> 1) & 3)) * Math.PI / 180, bend = (v & 8 ? 1 : -1) * L * 0.22 * up;
-    for (const s of [1, -1]) {
-      const x1 = cx + s * L * Math.cos(ang), y1 = y + up * L * Math.sin(ang), dx = x1 - cx, dy = y1 - y, len = Math.hypot(dx, dy);
-      const mx = (cx + x1) / 2 + (-dy / len) * bend * s, my = (y + y1) / 2 + (dx / len) * bend * s;
-      quad(cx, y, mx, my, x1, y1);
-    }
-  });
-  for (let y = top; y <= top + H; y += ch / 4) put(cx, y, '|');
-  put(cx, top, '.'); put(cx, top + H - 1, "'");
-  const esc = c => c === '&' ? '&amp;' : c === '<' ? '&lt;' : c;
-  return `<text class="a" x="${x0}" y="${top}" font-size="${fs}" style="fill:url(#chrome)">${grid.map((row, i) => `<tspan x="${x0.toFixed(1)}" y="${(top + (i + 0.8) * ch).toFixed(1)}">${row.map(esc).join('')}</tspan>`).join('')}</text>`;
-}
-// The lock, in ASCII: a shackle drawn in direction characters, a body filled with a hex dump of the
-// name's bytes, and a keyhole cut through the dump (whole bytes only, never half of one).
-function asciiLock(name, cx, top, fs) {
-  const cw = fs * 0.6, ch = fs * 1.05, cols = 41, rows = 26, x0 = cx - (cols * cw) / 2;
-  const hex = [...Buffer.from(name, 'ascii')].map(b => b.toString(16));
-  const L = 2, R = cols - 3, T = 11, B = rows - 1;           // body walls, in cells
-  const scx = (cols - 1) / 2, scy = T - 1.5, rO = 13, rI = 10.5; // shackle, in cells (x units)
-  const kx = scx, ky = T + 4.5;                                // keyhole centre
-  const aspect = ch / cw;
-  const dir = (dx, dy) => { let a = Math.atan2(dy, dx) * 180 / Math.PI; a = ((a % 180) + 180) % 180; return a < 22.5 || a >= 157.5 ? '-' : a < 67.5 ? '\\' : a < 112.5 ? '|' : '/'; };
-  const keyhole = (j, i) => Math.hypot(j - kx, (i - ky) * aspect) < 4.2 || (Math.abs(j - kx) < 1.6 && i > ky && i < ky + 5.5);
-  const metal = [], dump = [];
-  for (let i = 0; i < rows; i++) {
-    const m = Array(cols).fill(' '), h = Array(cols).fill(' ');
-    for (let j = 0; j < cols; j++) {
-      const dx = j - scx, dy = (i - scy) * aspect, r = Math.hypot(dx, dy);
-      if (i < T && ((dy <= 0 && r >= rI && r <= rO) || (dy > 0 && Math.abs(dx) >= rI && Math.abs(dx) <= rO))) m[j] = dy > 0 ? '|' : dir(-dy, dx);
-      if (i >= T && i <= B && j >= L && j <= R) m[j] = (i === T || i === B) ? (j === L || j === R ? '+' : '=') : (j === L || j === R ? '|' : ' ');
-    }
-    if (i > T && i < B) {
-      // bytes sit at columns L+2, L+5, ...; a byte touching the keyhole is dropped whole
-      for (let k = 0, j = L + 2; j + 1 < R - 1; k++, j += 3) {
-        if (keyhole(j, i) || keyhole(j + 1, i)) continue;
-        const t = hex[(k + (i - T) * 5) % hex.length];
-        h[j] = t[0]; h[j + 1] = t[1];
-      }
-    }
-    metal.push(m.join('')); dump.push(h.join(''));
+    return [H, 'Down the stack, from high level to the machine. HTML and CSS: learning. Python: solid. Java: learning. C: curious. Assembly: curious. Next: security, across every layer, and AI systems that keep working when an API fails.', `
+<text class="h" x="${X}" y="40" font-size="30">Down the stack</text>
+<line x1="${x1}" y1="${ax + .5}" x2="${x2}" y2="${ax + .5}" stroke="${t.rule}"/>
+${marks}
+<text class="l" x="${X}" y="214" font-size="15">High level</text>
+<text class="l" x="${W - X}" y="214" font-size="15" text-anchor="end">Machine</text>
+${rule(t, 244)}
+<text class="l" x="${X}" y="282" font-size="15">Next</text>
+<text class="v" x="160" y="282" font-size="18">Security, across every layer</text>
+<text class="v" x="160" y="310" font-size="18">AI systems that keep working when an API fails</text>`];
+  },
+
+  projects: t => {
+    const H = 190;
+    return [H, 'Projects. decided: picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source.', `
+<text class="h" x="${X}" y="40" font-size="30">Projects</text>
+${rule(t, 76)}
+<text class="h" x="${X}" y="118" font-size="22">decided</text>
+<text class="b" x="160" y="117" font-size="18">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
+<text class="b" x="160" y="143" font-size="18">You choose the goal, it makes the calls.</text>
+<text class="l" x="${W - X}" y="117" font-size="15" text-anchor="end">HTML</text>
+<text class="l" x="${W - X}" y="143" font-size="15" text-anchor="end">Open source</text>
+${rule(t, 176)}`];
+  },
+};
+
+for (const [name, page] of Object.entries(pages))
+  for (const [mode, t] of Object.entries(THEMES)) {
+    const [H, label, body, arabic] = page(t);
+    fs.writeFileSync(path.join(OUT, `${name}-${mode}.svg`), svg(t, H, label, body, arabic));
   }
-  const esc = c => c === '&' ? '&amp;' : c === '<' ? '&lt;' : c;
-  const block = (lines, style) => `<text class="a" font-size="${fs}" style="${style}">${lines.map((row, i) => `<tspan x="${x0.toFixed(1)}" y="${(top + (i + 0.8) * ch).toFixed(1)}">${[...row].map(esc).join('')}</tspan>`).join('')}</text>`;
-  return block(metal, 'fill:url(#chrome)') + block(dump, `fill:${tok.muted}`);
-}
-const bytes = s => [...Buffer.from(s, 'ascii')].map(b => b.toString(16)).join(' ');
-
-// Header: a title screen. The sigil, the wordmark, who I am, the languages in their own scripts.
-{
-  const H = 580, cx = W / 2;
-  const langs = [['ar', 'العربية', 52], ['v', 'Français', 66], ['v', 'English', 56], ['v', 'Español', 60], ['i', '(learning)', 70]];
-  const total = langs.reduce((a, [, , w]) => a + w, 0) + 28 * (langs.length - 2) + 8;
-  let lx = cx - total / 2, row = '';
-  langs.forEach(([c, w, width], i) => { row += `<text class="${c}" x="${lx}" y="522" font-size="${c === 'ar' ? 22 : 20}">${w}</text>`; lx += width + (i === langs.length - 2 ? 8 : 28); });
-  const body = `
-${frame(24, 24, W - 48, H - 48)}
-${asciiLock('wesper', cx, 40, 9)}
-<text class="w" x="${cx + 10}" y="364" font-size="64" text-anchor="middle" style="fill:url(#chrome)">WESPER</text>
-${divider(cx, 392, 300)}
-<text class="i" x="${cx}" y="430" font-size="22" text-anchor="middle">Engineering student from Morocco, living in Guadix, Spain.</text>
-<text class="i" x="${cx}" y="460" font-size="22" text-anchor="middle">Python first, working my way down the stack.</text>
-${row}
-<text class="m" x="52" y="${H - 44}" font-size="12">${bytes('wesper')}</text>`;
-  fs.writeFileSync(`${OUT}/header.svg`, svg(H, `WESPER. Engineering student from Morocco, living in Guadix, Spain. Python first, working my way down the stack. Speaks Arabic, French, English and Spanish (learning). An ASCII padlock whose body is a hex dump of the bytes of wesper, ${bytes('wesper')}, with a keyhole cut through it.`, ['display', 'body', 'mono', 'arabic'], body));
-}
-
-// Stack: a menu. One row selected, its description beside it.
-{
-  const rows = [
-    ['AI systems', 'next'],
-    ['Web: HTML, CSS', 'learning'],
-    ['Python', 'solid'],
-    ['Java', 'learning'],
-    ['C, the basics', 'curious'],
-    ['Assembly, the basics', 'curious'],
-  ];
-  const X = 56, top = 168, rh = 50, LW = 470, PX = X + LW + 24, PW = W - 56 - PX;
-  const H = top + rows.length * rh + 64;
-  let b = `
-<text class="h" x="${X}" y="92" font-size="34">THE STACK</text>
-<text class="i" x="${X}" y="128" font-size="20">Top is furthest from the machine. I'm working my way down.</text>
-${frame(X - 16, top - 20, LW + 16, rows.length * rh + 40)}`;
-  rows.forEach(([what, status], i) => {
-    const y = top + i * rh, sel = status === 'solid';
-    if (sel) b += `<rect x="${X}" y="${y + 3}" width="${LW - 16}" height="${rh - 6}" fill="${tok['paper-2']}"/>${diamond(X + 14, y + rh / 2, 8, tok.ember)}`;
-    b += `<text class="v" x="${X + 34}" y="${y + 32}" font-size="20">${what}</text>
-<text class="i" x="${X + LW - 34}" y="${y + 32}" font-size="19" text-anchor="end"${sel ? ` style="fill:${tok.ember}"` : ''}>${status}</text>`;
-    if (i < rows.length - 1) b += `<line x1="${X + 34}" y1="${y + rh + .5}" x2="${X + LW - 34}" y2="${y + rh + .5}" stroke="${tok['rule-2']}"/>`;
-  });
-  const ph = rows.length * rh + 40;
-  b += `
-${frame(PX, top - 20, PW, ph)}
-<text class="h" x="${PX + 32}" y="${top + 30}" font-size="26">PYTHON</text>
-<text class="i" x="${PX + 32}" y="${top + 62}" font-size="19" style="fill:${tok.ember}">solid</text>
-<text class="b" x="${PX + 32}" y="${top + 104}" font-size="20">The language I'm good with,</text>
-<text class="b" x="${PX + 32}" y="${top + 130}" font-size="20">and the one I build in.</text>
-<line x1="${PX + 32}" y1="${top + 178.5}" x2="${PX + PW - 32}" y2="${top + 178.5}" stroke="${tok['rule-2']}"/>
-<text class="l" x="${PX + 32}" y="${top + 214}" font-size="17">Across every layer</text>
-<text class="v" x="${PX + 32}" y="${top + 244}" font-size="20">Security</text>
-<text class="i" x="${PX + PW - 32}" y="${top + 244}" font-size="19" text-anchor="end">next</text>`;
-  fs.writeFileSync(`${OUT}/stack.svg`, svg(H, 'The stack. Top is furthest from the machine; I am working my way down. AI systems: next. Web, HTML and CSS: learning. Python: solid, the language I am good with and the one I build in. Java: learning. C, the basics: curious. Assembly, the basics: curious. Security, across every layer: next.', ['display', 'body'], b));
-}
-
-// Projects: each project an item, its sigil in a square frame like an icon.
-{
-  const H = 330, X = 56, I = 200, iy = 104, tx = X + I + 40;
-  const b = `
-<text class="h" x="${X}" y="76" font-size="34">PROJECTS</text>
-${frame(X, iy, I, I)}
-${asciiSigil('decided', X + I / 2, iy + 18, I - 36, 8)}
-<text class="h" x="${tx}" y="${iy + 34}" font-size="28">DECIDED</text>
-<text class="i" x="${tx}" y="${iy + 76}" font-size="21">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
-<text class="i" x="${tx}" y="${iy + 104}" font-size="21">You choose the goal, it makes the calls.</text>
-<line x1="${tx}" y1="${iy + 136.5}" x2="${W - 56}" y2="${iy + 136.5}" stroke="${tok['rule-2']}"/>
-<text class="l" x="${tx}" y="${iy + 166}" font-size="17">Built with</text><text class="v" x="${tx}" y="${iy + 192}" font-size="19">HTML</text>
-<text class="l" x="${tx + 130}" y="${iy + 166}" font-size="17">Licence</text><text class="v" x="${tx + 130}" y="${iy + 192}" font-size="19">Open source</text>
-<text class="l" x="${tx + 280}" y="${iy + 166}" font-size="17">Sigil</text><text class="m" x="${tx + 280}" y="${iy + 190}" font-size="13">${bytes('decided')}</text>`;
-  fs.writeFileSync(`${OUT}/projects.svg`, svg(H, 'Projects. decided: picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Built with HTML, open source. Its sigil is grown from the bytes of its name.', ['display', 'body', 'mono'], b));
-}
 console.log('built', fs.readdirSync(OUT).join(', '));
