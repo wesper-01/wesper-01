@@ -1,29 +1,24 @@
-<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=500&size=18&pause=1600&color=8B949E&vCenter=true&width=520&lines=rayane+%2F+engineering+student;python+first.+c+and+asm+for+curiosity." alt="rayane / engineering student" />
+# Rayane
 
-### Rayane
+Engineering student, 20. Moroccan, living in Guadix, Spain.
+I write Python every day and I'm still learning most of everything else.
 
-Engineering student, 20. From Morocco, living in Guadix, Spain.
+## Building
 
-Python is where I'm comfortable. Everything else I'm still learning, and I'd rather say that plainly than pad a list of logos.
+[decided](https://github.com/wesper-01/decided) picks your meals, portions and groceries for a bulk, cut or recomp. You choose the goal, it makes the calls. Open source.
 
-### Now
-
-[**decided**](https://github.com/wesper-01/decided): an open-source nutrition app that picks your meals, portions and groceries for a bulk, cut or recomp. You set the goal; it makes the decisions.
-
-### Stack
+## What I actually know
 
 ```
-comfortable   python
-learning      java · html · css
-curious       c · assembly (the basics, for fun)
+solid        python
+learning     java, html, css
+curiosity    c, assembly (the basics)
 ```
 
-### Where I'm headed
+## Where I'm going
 
-- **Low-level & reverse engineering.** Learning how code actually runs on the machine, starting with C and assembly.
-- **AI / ML engineering.** Building systems that keep working when an API fails or a rate limit hits.
-- **Security.** Understanding how things break, so I can build things that don't.
+Down the stack and into security: how code runs on the machine, how it breaks, and how to build things that hold. Along the way, AI systems that keep working when an API doesn't.
 
-### Languages
+## Languages
 
-Arabic, French, English, and Spanish (getting there).
+Arabic, French and English. Spanish is getting there.
