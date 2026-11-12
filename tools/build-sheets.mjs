@@ -35,6 +35,7 @@ const css = need => `${need.map(n => fonts[n]).join('')}
 .l{font-family:"EB Garamond",serif;font-weight:500;fill:${tok.muted}}
 .v{font-family:"EB Garamond",serif;font-weight:500;fill:${tok.ink}}
 .m{font-family:"Azeret Mono",monospace;font-weight:500;fill:${tok.muted}}
+.a{font-family:"Azeret Mono",monospace;font-weight:500;white-space:pre}
 .ar{font-family:"Amiri",serif;font-weight:400;fill:${tok.ink}}`;
 
 const chrome = `<defs><linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
@@ -58,30 +59,38 @@ ${[[x, y], [x + w, y], [x, y + h], [x + w, y + h]].map(([a, b]) => diamond(a, b,
 const divider = (cx, y, w) => `<line x1="${cx - w / 2}" y1="${y + .5}" x2="${cx - 10}" y2="${y + .5}" stroke="${tok.rule}"/>
 <line x1="${cx + 10}" y1="${y + .5}" x2="${cx + w / 2}" y2="${y + .5}" stroke="${tok.rule}"/>${diamond(cx, y + .5, 6, tok.ember)}`;
 
-// The sigil: each nibble of the name grows one thorn off a central spine, mirrored left to right.
-function sigil(name, cx, top, H) {
+// The sigil, drawn in ASCII. Each nibble of the name grows one thorn off a central spine, mirrored left to right;
+// each stroke is sampled onto a character grid and every cell takes the
+// character that matches the stroke's direction there (- \ | /), tips become '.', the spine stays '|'.
+function asciiSigil(name, cx, top, H, fs) {
   const nib = [...Buffer.from(name, 'ascii')].flatMap(b => [b >> 4, b & 15]);
-  const n = nib.length, p = v => v.toFixed(1);
-  const blade = (x0, y0, x1, y1, w, bend) => {
-    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
-    const mx = (x0 + x1) / 2 + nx * bend, my = (y0 + y1) / 2 + ny * bend;
-    return `M${p(x0 - nx * w)} ${p(y0 - ny * w)}Q${p(mx - nx * w * 0.6)} ${p(my - ny * w * 0.6)} ${p(x1)} ${p(y1)}Q${p(mx + nx * w * 0.6)} ${p(my + ny * w * 0.6)} ${p(x0 + nx * w)} ${p(y0 + ny * w)}Z`;
+  const n = nib.length, cw = fs * 0.6, ch = fs * 1.05;
+  const cols = Math.ceil(H * 1.02 / cw) | 1, rows = Math.ceil(H / ch) + 1, x0 = cx - (cols * cw) / 2;
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(' '));
+  const put = (x, y, c) => { const i = Math.floor((y - top) / ch), j = Math.floor((x - x0) / cw); if (i >= 0 && i < rows && j >= 0 && j < cols) grid[i][j] = c; };
+  const dir = (dx, dy) => { let a = Math.atan2(dy, dx) * 180 / Math.PI; a = ((a % 180) + 180) % 180; return a < 22.5 || a >= 157.5 ? '-' : a < 67.5 ? '\\' : a < 112.5 ? '|' : '/'; };
+  const quad = (ax, ay, bx, by, ex, ey) => {
+    for (let t = 0; t <= 1; t += 0.004) {
+      const u = 1 - t, x = u * u * ax + 2 * u * t * bx + t * t * ex, y = u * u * ay + 2 * u * t * by + t * t * ey;
+      put(x, y, t > 0.95 ? '.' : dir(2 * u * (bx - ax) + 2 * t * (ex - bx), 2 * u * (by - ay) + 2 * t * (ey - by)));
+    }
   };
-  let d = `M${p(cx)} ${p(top)}Q${p(cx + H / 45)} ${p(top + H * 0.45)} ${p(cx)} ${p(top + H)}Q${p(cx - H / 45)} ${p(top + H * 0.45)} ${p(cx)} ${p(top)}Z`;
-  nib.forEach((v, i) => {
-    const y = top + H * (0.1 + 0.8 * (i + 0.5) / n);
-    const L = H * (0.16 + 0.3 * v / 15);
-    const up = v & 1 ? -1 : 1;
-    const ang = (12 + 16 * ((v >> 1) & 3)) * Math.PI / 180;
-    const bend = (v & 8 ? 1 : -1) * L * 0.22 * up;
-    const w = (1.2 + ((v >> 2) & 1) * 1.4) * H / 300;
-    const x1 = cx + L * Math.cos(ang), y1 = y + up * L * Math.sin(ang);
-    d += blade(cx, y, x1, y1, w, bend) + blade(cx, y, 2 * cx - x1, y1, w, -bend);
-  });
   const sum = nib.reduce((a, b) => a + b, 0), r = H * 0.3, g = (sum % 60 + 20) * Math.PI / 180;
-  const arc = (a0, a1) => `M${p(cx + r * Math.sin(a0))} ${p(top + H / 2 - r * Math.cos(a0))}A${p(r)} ${p(r)} 0 0 1 ${p(cx + r * Math.sin(a1))} ${p(top + H / 2 - r * Math.cos(a1))}`;
-  return `<path d="${d}" fill="url(#chrome)"/>
-<path d="${arc(g, Math.PI - g / 2)} ${arc(Math.PI + g / 2, 2 * Math.PI - g)}" fill="none" stroke="url(#chrome)" stroke-width="1"/>`;
+  for (const [a0, a1] of [[g, Math.PI - g / 2], [Math.PI + g / 2, 2 * Math.PI - g]])
+    for (let a = a0; a <= a1; a += 0.004) put(cx + r * Math.sin(a), top + H / 2 - r * Math.cos(a), dir(Math.cos(a), Math.sin(a)));
+  nib.forEach((v, i) => {
+    const y = top + H * (0.1 + 0.8 * (i + 0.5) / n), L = H * (0.16 + 0.3 * v / 15), up = v & 1 ? -1 : 1;
+    const ang = (12 + 16 * ((v >> 1) & 3)) * Math.PI / 180, bend = (v & 8 ? 1 : -1) * L * 0.22 * up;
+    for (const s of [1, -1]) {
+      const x1 = cx + s * L * Math.cos(ang), y1 = y + up * L * Math.sin(ang), dx = x1 - cx, dy = y1 - y, len = Math.hypot(dx, dy);
+      const mx = (cx + x1) / 2 + (-dy / len) * bend * s, my = (y + y1) / 2 + (dx / len) * bend * s;
+      quad(cx, y, mx, my, x1, y1);
+    }
+  });
+  for (let y = top; y <= top + H; y += ch / 4) put(cx, y, '|');
+  put(cx, top, '.'); put(cx, top + H - 1, "'");
+  const esc = c => c === '&' ? '&amp;' : c === '<' ? '&lt;' : c;
+  return `<text class="a" x="${x0}" y="${top}" font-size="${fs}" style="fill:url(#chrome)">${grid.map((row, i) => `<tspan x="${x0.toFixed(1)}" y="${(top + (i + 0.8) * ch).toFixed(1)}">${row.map(esc).join('')}</tspan>`).join('')}</text>`;
 }
 const bytes = s => [...Buffer.from(s, 'ascii')].map(b => b.toString(16)).join(' ');
 
@@ -94,7 +103,7 @@ const bytes = s => [...Buffer.from(s, 'ascii')].map(b => b.toString(16)).join(' 
   langs.forEach(([c, w, width], i) => { row += `<text class="${c}" x="${lx}" y="522" font-size="${c === 'ar' ? 22 : 20}">${w}</text>`; lx += width + (i === langs.length - 2 ? 8 : 28); });
   const body = `
 ${frame(24, 24, W - 48, H - 48)}
-${sigil('wesper', cx, 64, 230)}
+${asciiSigil('wesper', cx, 56, 250, 9)}
 <text class="w" x="${cx + 10}" y="364" font-size="64" text-anchor="middle" style="fill:url(#chrome)">WESPER</text>
 ${divider(cx, 392, 300)}
 <text class="i" x="${cx}" y="430" font-size="22" text-anchor="middle">Engineering student from Morocco, living in Guadix, Spain.</text>
@@ -147,7 +156,7 @@ ${frame(PX, top - 20, PW, ph)}
   const b = `
 <text class="h" x="${X}" y="76" font-size="34">PROJECTS</text>
 ${frame(X, iy, I, I)}
-${sigil('decided', X + I / 2, iy + 22, I - 44)}
+${asciiSigil('decided', X + I / 2, iy + 18, I - 36, 8)}
 <text class="h" x="${tx}" y="${iy + 34}" font-size="28">DECIDED</text>
 <text class="i" x="${tx}" y="${iy + 76}" font-size="21">Picks your meals, portions and groceries for a bulk, cut or recomp.</text>
 <text class="i" x="${tx}" y="${iy + 104}" font-size="21">You choose the goal, it makes the calls.</text>
