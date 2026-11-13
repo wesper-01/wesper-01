@@ -35,36 +35,79 @@ const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
 const MONO = face('JetBrains Mono', 400, 'jetbrains-mono-latin-400-normal.woff2');
 
-// The render: the handle, extruded and ray-traced into characters, at a slight fixed angle. On load it
-// shows as a silhouette of bits, decodes left to right into its shaded characters once, and stays.
-const R = { cols: 150, rows: 27, depth: 7, yaw: 0.24, pitch: -0.2, sx: 0.66, light: [-0.3, 0.5, -0.85],
-  decodeAt: 0.25, decodeFor: 1.2, step: 0.06 };
+// The render: the handle, extruded and ray-traced into characters, at a slight fixed angle. It never
+// moves. On load it decodes out of its own bits once; after that it stays alive: the light drifts
+// across it, and now and then a few cells flicker back to raw bits for a moment.
+const R = { cols: 150, rows: 27, depth: 7, yaw: 0.24, pitch: -0.2, sx: 0.66,
+  decodeAt: 0.25, decodeFor: 1.2, step: 0.06, loop: 10, loopStep: 0.25 };
 const NAME = scene(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/name-grid.json'), 'utf8')), R.depth);
-const FINAL = frame(NAME, R.cols, R.rows, R.yaw, R.pitch, R.sx, R.sx * 1.7, R.light);
+const lightAt = t => [0.36 * Math.sin(2 * Math.PI * t / R.loop) - 0.05, 0.5, -0.85];
+const render = t => frame(NAME, R.cols, R.rows, R.yaw, R.pitch, R.sx, R.sx * 1.7, lightAt(t));
+const FINAL = render(0);
 const BITS = [...Buffer.from('wesper', 'ascii')].flatMap(b => [...b.toString(2).padStart(8, '0')]);
 let rs = 0x51ee;
-const jitter = FINAL.map(l => [...l.padEnd(R.cols)].map(() => ((rs = (rs * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)));
+const rnd = () => ((rs = (rs * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+const jitter = FINAL.map(l => [...l.padEnd(R.cols)].map(() => rnd()));
 const lockAt = (r, c) => R.decodeAt + R.decodeFor * (0.82 * c / R.cols + 0.18 * jitter[r][c]);
 const END = R.decodeAt + R.decodeFor + R.step;
-const TIMES = [[0, R.decodeAt]];
-for (let t = R.decodeAt; t < END - 1e-9; t += R.step) TIMES.push([t, Math.min(t + R.step, END)]);
-const FRAMES = TIMES.map(([t0, t1], n) => ({ t0, t1, last: t1 >= END - 1e-9,
-  lines: FINAL.map((l, r) => [...l.padEnd(R.cols)].map((ch, c) => ch === ' ' ? ' ' : t0 >= lockAt(r, c) ? ch : BITS[(r * 7 + c * 3 + n) % BITS.length]).join('').replace(/\s+$/, '')) }));
+const trim = cells => cells.join('').replace(/\s+$/, '');
 
-const W = 960, FS = W / R.cols / 0.6, LH = FS * 1.02, H = Math.round(R.rows * LH + 12);
+// once: the decode
+const DECODE = [[0, R.decodeAt]];
+for (let t = R.decodeAt; t < END - 1e-9; t += R.step) DECODE.push([t, Math.min(t + R.step, END)]);
+const ONCE = DECODE.map(([t0, t1], n) => ({ t0, t1, lines: FINAL.map((l, r) => trim([...l.padEnd(R.cols)].map((ch, c) => ch === ' ' ? ' ' : t0 >= lockAt(r, c) ? ch : BITS[(r * 7 + c * 3 + n) % BITS.length]))) }));
+
+// forever after: the light drifts; in about one frame in three, a short run of cells flips to bits
+const LIVE = [];
+for (let t = 0, n = 0; t < R.loop - 1e-9; t += R.loopStep, n++) {
+  const lit = render(t).map(l => [...l.padEnd(R.cols)]);
+  if (rnd() < 0.35) for (let k = 0; k < 1 + Math.floor(rnd() * 2); k++) {
+    const r = Math.floor(rnd() * R.rows), c0 = Math.floor(rnd() * R.cols), len = 3 + Math.floor(rnd() * 6);
+    for (let c = c0; c < Math.min(R.cols, c0 + len); c++) if (lit[r][c] !== ' ') lit[r][c] = BITS[(r + c + n) % BITS.length];
+  }
+  LIVE.push({ t0: t, t1: Math.min(t + R.loopStep, R.loop), lines: lit.map(trim) });
+}
+
+// under it: what I'm learning, typed out, held, deleted, next
+const TOPICS = ['c', 'assembly', 'malware analysis', 'red teaming'];
+const TYPE = { char: 0.07, hold: 1.8, del: 0.035, gap: 0.35 };
+const TYPED = []; let tt = 0;
+for (const w of TOPICS) {
+  for (let i = 1; i <= w.length; i++) { TYPED.push({ t0: tt, t1: tt + TYPE.char, text: w.slice(0, i) }); tt += TYPE.char; }
+  TYPED[TYPED.length - 1].t1 = tt += TYPE.hold;
+  for (let i = w.length - 1; i >= 1; i--) { TYPED.push({ t0: tt, t1: tt + TYPE.del, text: w.slice(0, i) }); tt += TYPE.del; }
+  TYPED.push({ t0: tt, t1: tt + TYPE.gap, text: '' }); tt += TYPE.gap;
+}
+const TYPE_LOOP = tt;
+
+const W = 960, FS = W / R.cols / 0.6, LH = FS * 1.02, RH = R.rows * LH, LINE_Y = RH + 46, H = Math.round(LINE_Y + 18);
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-const pct = t => (100 * t / END).toFixed(2);
-const svg = t => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="wesper">
+const KF = [];
+const win = (t0, t1, total, hold = false) => {
+  const id = `k${KF.length}`, p = t => (100 * t / total).toFixed(3);
+  KF.push(`@keyframes ${id}{0%{opacity:${t0 <= 0 ? 1 : 0}}${t0 > 0 ? `${p(t0)}%{opacity:1}` : ''}${hold ? '' : `${p(t1)}%,`}100%{opacity:${hold ? 1 : 0}}}`);
+  return id;
+};
+const textBlock = (lines, anim, cls) => `<text class="${cls}" font-size="${FS.toFixed(2)}" style="${anim}">${lines.map((l, j) => `<tspan x="0" y="${(6 + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`;
+const svg = t => {
+  KF.length = 0;
+  const once = ONCE.map(({ t0, t1, lines }) => textBlock(lines, `animation:${win(t0, t1, END)} ${END}s step-end 1 both`, 'f')).join('\n');
+  const live = LIVE.map(({ t0, t1, lines }, i) => textBlock(lines, `animation:${win(t0, t1, R.loop)} ${R.loop}s step-end ${END}s infinite backwards`, `f${i ? '' : ' still'}`)).join('\n');
+  const typed = TYPED.map(({ t0, t1, text }) => `<tspan style="animation:${win(t0, t1, TYPE_LOOP)} ${TYPE_LOOP}s step-end ${END}s infinite backwards" class="f">${esc(text)}</tspan>`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="wesper. Currently learning C, assembly, malware analysis and red teaming.">
 <title>wesper</title>
 <style>${MONO}
 text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre;fill:${t.ink}}
-.bit{fill:${t.muted}}
-.f{opacity:0;animation-duration:${END}s;animation-timing-function:step-end;animation-fill-mode:forwards}
-${FRAMES.map(({ t0, t1, last }, i) => `@keyframes f${i}{0%{opacity:0}${pct(t0)}%{opacity:1}${last ? '' : `${pct(t1)}%,`}100%{opacity:${last ? 1 : 0}}}`).join('\n')}
-@media (prefers-reduced-motion: reduce){.f{animation:none!important;opacity:0}.f.last{opacity:1}}</style>
+.f{opacity:0}.mut{fill:${t.muted}}
+${KF.join('\n')}
+@media (prefers-reduced-motion: reduce){.f,tspan{animation:none!important}.f{opacity:0}.f.still,.calm{opacity:1}}</style>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
-${FRAMES.map(({ lines, last }, i) => `<text class="f${last ? ' last' : ''}" font-size="${FS.toFixed(2)}" style="animation-name:f${i}">${lines.map((l, j) => `<tspan x="0" y="${(6 + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`).join('\n')}
+${once}
+${live}
+<text font-size="17" y="${LINE_Y}"><tspan class="mut" x="4">currently learning  </tspan>${typed.map(s => s.replace('<tspan ', `<tspan x="${(4 + 20 * 17 * 0.6).toFixed(1)}" `)).join('')}</text>
+<text class="calm f" font-size="17" y="${LINE_Y}"><tspan x="${(4 + 20 * 17 * 0.6).toFixed(1)}">c, assembly, malware analysis, red teaming</tspan></text>
 </svg>`;
+};
 
 for (const [mode, t] of Object.entries(THEMES)) fs.writeFileSync(path.join(OUT, `header-${mode}.svg`), svg(t));
 console.log('built', fs.readdirSync(OUT).map(n => `${n} ${(fs.statSync(path.join(OUT, n)).size / 1024).toFixed(0)}KB`).join(', '));
