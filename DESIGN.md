@@ -44,11 +44,13 @@ Dark, shown on GitHub's dark theme:
 - It is the only image. No stat cards, badges, banners, photos or other generated graphics.
 
 ## The text
-- Written by me, in first person, the way I'd say it out loud. Short paragraphs, plain words.
-- Honest levels: comfortable with, know the basics of, learning on my own. Never inflate them.
+- Six short sections under the header, each an `###` heading: About, Right now, Stack, Where I'm heading, Outside code, Languages. Add or drop a section rather than letting one grow.
+- Each section is two or three lines at most, or a short list. The Stack is one three-column table: comfortable, the basics, learning on my own.
+- Every section carries an HTML comment saying how to update it; GitHub hides these, so they only show when editing.
+- Written by me, in first person or plain fragments, the way I'd say it out loud. Honest levels; never inflate them.
 - No real name; the profile goes by the handle.
 - No projects until there is one worth leading with.
-- No emoji, buzzwords, slogans, middle-dot lists, em dashes or invented numbers.
+- No emoji, badges, stat cards, buzzwords, slogans, middle-dot lists, em dashes or invented numbers.
 
 ## Exports
 `assets/header-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License).
