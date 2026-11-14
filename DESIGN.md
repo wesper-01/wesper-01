@@ -1,12 +1,11 @@
 # Design: wesper
 
-The locked system for this profile. The image in `assets/` is generated from this file by `tools/build-sheets.mjs`, which reads the token blocks below. Change it on purpose; the file is the rule.
+The rules for this profile. The header image in `assets/` is generated from this file by `tools/build-sheets.mjs`, which reads the colour tokens below. Everything else is the README's own text.
 
 ## System
-- Theme: custom, "Render" (vibe: "demoscene precision, nothing to prove")
-- Idea: the handle is a real 3D object, ray-traced into ASCII. It is extruded from the letterforms, lit by one key light, and drawn only in characters (` .:-=+*%#@`, dark to bright), swinging slowly in space. Under it, a plain readout of who I am.
-- Axes: light and dark/mono/neutral, posture: characters on GitHub's own background
-- Signature: the ASCII render of `Wesper`, decoding out of binary. The profile goes by the handle; no real name appears anywhere.
+- Idea: one piece of craft, then a person talking. The header is the handle rendered in 3D ASCII; below it, plain markdown written the way I'd introduce myself.
+- Signature: `wesper` in ice, ray-traced into ASCII characters, with a scan beam that passes over it and shows what is inside.
+- Audience: other programmers and employers. Both should finish reading knowing what I'm good at, what I'm learning, and where I'm heading.
 
 ## Tokens
 Light, shown on GitHub's light theme:
@@ -14,9 +13,11 @@ Light, shown on GitHub's light theme:
 :root {
   --color-paper: #ffffff;                  /* GitHub light background, exactly */
   --color-ink: oklch(19% 0.008 260);
-  --color-ink-2: oklch(42% 0.01 260);
-  --color-muted: oklch(56% 0.01 260);
-  --color-rule: oklch(91% 0.004 260);
+  --color-muted: oklch(50% 0.01 260);       /* 5:1 on white, so the small line passes AA */
+  /* ice, top of the letters to the bottom: deep navy into bright blue */
+  --color-ice-0: #071a33; --color-ice-1: #0c2c58; --color-ice-2: #10407e; --color-ice-3: #1552a0;
+  --color-ice-4: #1a64bb; --color-ice-5: #2275cc; --color-ice-6: #2f86da;
+  --color-accent: #1f6fc0;                 /* the typed topic */
 }
 ```
 Dark, shown on GitHub's dark theme:
@@ -24,36 +25,32 @@ Dark, shown on GitHub's dark theme:
 [data-theme="dark"] {
   --color-paper: #0d1117;                  /* GitHub dark background, exactly */
   --color-ink: oklch(95% 0.004 260);
-  --color-ink-2: oklch(76% 0.008 260);
-  --color-muted: oklch(58% 0.012 260);
-  --color-rule: oklch(28% 0.014 260);
-}
-```
-Shared:
-```css
-:root {
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;  /* everything */
+  --color-muted: oklch(62% 0.012 260);    /* 5:1 on the dark background */
+  /* ice, top of the letters to the bottom: white-hot into electric blue */
+  --color-ice-0: #ffffff; --color-ice-1: #d2f1ff; --color-ice-2: #8fd8f8; --color-ice-3: #52b9ee;
+  --color-ice-4: #2b93d8; --color-ice-5: #1d6cb6; --color-ice-6: #164b8a;
+  --color-accent: #8fd8f8;                 /* the typed topic */
 }
 ```
 
-## The render
-- Source: `Wesper` set in Albert Sans 600, rasterized to an 86 by 22 grid (`tools/name-grid.json`, made by `tools/rasterize-name.cjs`), extruded 7 deep into voxels.
-- Each character cell casts one orthographic ray (voxel traversal, `tools/ascii3d.mjs`). The face it hits is lit by one light from the upper front, which travels left to right and back during the hold; brightness picks the character.
-- 150 columns by 27 rows, sized so it spans the image.
-- Light travel is kept narrow (x from -0.42 to 0.42) so the front faces never go dark.
-- It is the only graphic. Never a second render, never ASCII borders, banners or decorative text art.
+## The header
+- `Wesper` set in Albert Sans 600, rasterized to an 86 by 22 grid (`tools/name-grid.json`, made by `tools/rasterize-name.cjs`), extruded 7 deep into voxels, ray-traced one character per cell (`tools/ascii3d.mjs`), lit from the upper front. Characters ` .:-=+*%#@`, dark to bright. JetBrains Mono, embedded.
+- Colour is ice: one vertical gradient through the seven `ice` tokens, top of the letters to the bottom, so the name reads white-hot (dark) or deep navy (light) at the top and falls into blue. The character density carries the light and shading on top of it. Ice is the only hue on the page.
+- A slight fixed angle so the depth shows. The object never moves: no spin, no swing.
+- The scan: every 7.5 seconds a single vertical beam crosses the name, left to right, in about 4 seconds, then rests. The 18 columns just behind the beam show the letters' insides: outline cells become edges (`+ - |`) and body cells become the bytes of `wesper` in hex (77 65 73 70 65 72), in `accent`. Ahead of the beam and after it has passed, the name is solid again. It is "how things work underneath" as a picture.
+- Nothing else animates on the name: no decode, no flicker, no moving light.
+- Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c++, assembly, reverse engineering). Label in `muted`, topic in `accent`, set at 24px in the 960px image so it is still readable when GitHub shrinks it on a phone. It sits right under the last row of the render, with no empty band between.
+- Under `prefers-reduced-motion: reduce` nothing moves: the solid name and the full list of topics are simply there.
+- It is the only image. No stat cards, badges, banners, photos or other generated graphics.
 
-## Rules
-- One family, JetBrains Mono, for everything. The readout at 17px, its caption at 14px.
-- The readout comes after the name and is label and value, starting with my role: labels in `muted`, values in `ink`, lowercase, one hairline above. It states levels honestly: good, basic, teaching myself.
-- No colour. Ink, muted, one hairline.
-- One left edge. Nothing centred.
-- No projects until there is one worth leading with. No emoji, photos, icons, boxes, middle-dot lists, em dashes, invented numbers or slogans.
-
-## Motion
-- The render never moves; never a spin or a swing. It sits at a slight fixed angle (yaw 0.24, pitch -0.2) so the depth shows. On a 12 second loop, frame by frame: it appears as a silhouette of flickering bits (the bits of `wesper`), a decode sweeps left to right locking each cell into its shaded character over 1.4 seconds, then it holds while the light slowly travels from left to right and back, shifting the shading, and from 10.8 seconds it scrambles back into bits from the right.
-- The readout fades up 8px once, on load. Then it runs Matrix-style on a 12 second loop: columns of binary rain fall behind the values (brightest at the head, fading up the tail, 2.4 to 5 seconds a fall); every character starts as a flickering bit and locks into its letter left to right, rows 0.28s apart, with a little scatter. At about 10.6 seconds it scrambles back into bits and decodes again. Every digit on screen is a real bit of the readout's own text.
-- Under `prefers-reduced-motion: reduce`, the render holds its first frame and the readout shows as plain text with no rain and no flicker.
+## The text
+- Five short sections under the header, each an `###` heading: About, Now, Stack, Past project, Also. Add or drop a section rather than letting one grow.
+- Each section is one or two lines, and says something no other part of the page says: the topics live in the Stack table and the header line, so Now says why and where it leads, not just the list again. The Stack is one three-column table: comfortable, studying in DAM, teaching myself.
+- Every section carries an HTML comment saying how to update it; GitHub hides these, so they only show when editing.
+- Written by me, in first person or plain fragments, the way I'd say it out loud. Honest levels; never inflate them.
+- No real name; the profile goes by the handle.
+- One project at most, under Past project, said plainly: what it does, that it is discontinued, and a link to its documentation. No feature lists or numbers.
+- No emoji, badges, stat cards, buzzwords, slogans, middle-dot lists, em dashes or invented numbers.
 
 ## Exports
-`assets/profile-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License) and embedded in the image.
+`assets/header-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License).

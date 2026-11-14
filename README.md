@@ -1,4 +1,26 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/profile-dark.svg">
-  <img src="assets/profile-light.svg" width="100%" alt="Wesper, as a 3D ASCII render of the name that decodes out of binary, holds while a light sweeps across it, and scrambles back. Below, each value decodes out of falling binary, Matrix-style. Role: engineering student. Good: Python. Basic: Java, HTML, CSS. Teaching myself: C, assembly, malware analysis, red teaming. Speaks Arabic, French, English, Spanish (learning). Based in Guadix, Spain, from Morocco.">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
+  <img src="assets/header-light.svg" width="100%" alt="wesper, written in ASCII characters. Currently learning C++, assembly and reverse engineering.">
 </picture>
+
+### About
+<!-- One or two lines. Who you are, in plain words. -->
+20, from Morocco, living in Spain. Studying DAM (multiplatform app development). I like knowing how things work underneath.
+
+### Now
+<!-- What you're doing these weeks, and where it's going. -->
+Teaching myself C++ and getting familiar with assembly, because reverse engineering is what pulls me in. Cybersecurity is where I want to end up.
+
+### Stack
+<!-- Move things between columns as you get better at them. Keep it honest. -->
+| Comfortable | Studying in DAM | Teaching myself |
+| --- | --- | --- |
+| Python | Java, HTML, CSS | C++, assembly |
+
+### Past project
+<!-- The one project worth pointing at, and what it was. -->
+[TriageFlow](https://github.com/wesper-01/TriageFlow) sorts support emails into categories and drafts replies, using free AI models. It's discontinued, but it's the project I learned the most from. [The documentation](https://github.com/wesper-01/TriageFlow/blob/main/DOCUMENTATION.md) covers how it works.
+
+### Also
+<!-- Anything else: interests, languages. -->
+I like taking games apart to see how they work. I speak Arabic, French and English, and I'm getting there with Spanish.
