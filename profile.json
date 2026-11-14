@@ -1,0 +1,43 @@
+{
+  "left": [
+    {
+      "title": "about",
+      "text": "20, from Morocco, living in Spain. Studying DAM (multiplatform app development). I like knowing how things work underneath."
+    },
+    {
+      "title": "now",
+      "text": "Teaching myself C++ and getting familiar with assembly, because reverse engineering is what pulls me in. Cybersecurity is where I want to end up.",
+      "cursor": true
+    }
+  ],
+  "right": [
+    {
+      "title": "stack",
+      "levels": [
+        ["python", "comfortable"],
+        ["java", "studying"],
+        ["html / css", "studying"],
+        ["c++", "learning"],
+        ["assembly", "learning"]
+      ]
+    },
+    {
+      "title": "speaks",
+      "levels": [
+        ["arabic", "comfortable"],
+        ["french", "comfortable"],
+        ["english", "comfortable"],
+        ["spanish", "learning"]
+      ]
+    },
+    {
+      "title": "outside code",
+      "text": "I like taking games apart to see how they work."
+    }
+  ],
+  "bars": {
+    "comfortable": 8,
+    "studying": 4,
+    "learning": 2
+  }
+}

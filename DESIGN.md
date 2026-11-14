@@ -42,17 +42,23 @@ Dark, shown on GitHub's dark theme:
 - Nothing about the name itself animates: no decode, no scan, no flicker.
 - Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c++, assembly, reverse engineering). Label in `muted`, topic in `accent`, set at 24px in the 960px image so it is still readable when GitHub shrinks it on a phone. It sits right under the last row of the render, with no empty band between.
 - Under `prefers-reduced-motion: reduce` nothing moves: the name, one still frame of the aurora and the full list of topics are simply there.
-- No stat cards, badges, banners, photos or other generated graphics. The header is the only image.
+- No stat cards, badges, banners, photos or other generated graphics. The header and the panels are the only images.
 
+
+## The panels
+- Under the header, the profile's content sits in plain-ASCII frames (`+`, `-`, `|`), two columns: about and now on the left; stack, speaks and outside code on the right. Frame in `muted`, panel title in `accent`, text in `ink`.
+- The content lives in `profile.json`, nowhere else. Long text wraps to the panel by itself. Add, remove or reorder panels there.
+- Levels are words, not scores: comfortable, studying, learning. Each word has a bar drawn beside it (8, 4 or 2 cells of 8) in the ice gradient. The word is the claim; the bar is only its picture. No percentages.
+- Motion, once on load: the frames are already there, and each line is uncovered left to right, one after another. A cursor blinks at the end of the now panel. Under reduced motion everything is simply there.
+- 22px type in the 960px image, so it is still readable when GitHub shrinks it on a phone.
+- The image's alt text in the README is the full content in sentences, rewritten by the build so it never drifts.
 
 ## The text
-- Five short sections under the header, each an `###` heading: About, Now, Stack, Past project, Also. Add or drop a section rather than letting one grow.
-- Each section is one or two lines, and says something no other part of the page says: the topics live in the Stack table and the header line, so Now says why and where it leads, not just the list again. The Stack is one three-column table: comfortable, studying in DAM, teaching myself.
-- Every section carries an HTML comment saying how to update it; GitHub hides these, so they only show when editing.
+- Only what needs a link stays as markdown: the Past project section, under the panels.
 - Written by me, in first person or plain fragments, the way I'd say it out loud. Honest levels; never inflate them.
 - No real name; the profile goes by the handle.
-- One project at most, under Past project, said plainly: what it does, that it is discontinued, and a link to its documentation. No feature lists or numbers.
+- One project at most, said plainly: what it does, that it is discontinued, and a link to its documentation. No feature lists or numbers.
 - No emoji, badges, stat cards, buzzwords, slogans, middle-dot lists, em dashes or invented numbers.
 
 ## Exports
-`assets/header-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License).
+`assets/header-{light,dark}.svg` and `assets/panels-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License). A GitHub Action (`.github/workflows/build-profile.yml`) runs the build on every push to `master` that touches `profile.json`, `DESIGN.md` or `tools/`, so editing `profile.json` on github.com is enough.
