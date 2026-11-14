@@ -80,7 +80,10 @@ for (const w of TOPICS) {
 }
 const TYPE_LOOP = tt;
 
-const W = 960, FS = W / R.cols / 0.6, LH = FS * 1.02, RH = R.rows * LH, LINE_Y = RH + 46, H = Math.round(LINE_Y + 18);
+// TS: the typed line is sized to stay readable when GitHub scales the 960px image down to a phone (about 0.36x).
+// LAST: the last row the render reaches (rows below it are empty), so no dead band sits between the name and the line.
+const TS = 24, LAST = 23;
+const W = 960, FS = W / R.cols / 0.6, LH = FS * 1.02, LINE_Y = 6 + (LAST + 1) * LH + 40, H = Math.round(LINE_Y + 14);
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const KF = [];
 const win = (t0, t1, total, hold = false) => {
@@ -106,8 +109,8 @@ ${[0, 1, 2, 3, 4, 5, 6].map(i => `<stop offset="${(i / 6).toFixed(3)}" stop-colo
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
 ${once}
 ${live}
-<text font-size="17" y="${LINE_Y}"><tspan class="mut" x="4">currently learning  </tspan>${typed.map(s => s.replace('<tspan ', `<tspan x="${(4 + 20 * 17 * 0.6).toFixed(1)}" `)).join('')}</text>
-<text class="calm acc f" font-size="17" y="${LINE_Y}"><tspan x="${(4 + 20 * 17 * 0.6).toFixed(1)}">c, assembly, malware analysis, red teaming</tspan></text>
+<text font-size="${TS}" y="${LINE_Y.toFixed(1)}"><tspan class="mut" x="4">currently learning  </tspan>${typed.map(s => s.replace('<tspan ', `<tspan x="${(4 + 20 * TS * 0.6).toFixed(1)}" `)).join('')}</text>
+<text class="calm acc f" font-size="${TS}" y="${LINE_Y.toFixed(1)}"><tspan x="${(4 + 20 * TS * 0.6).toFixed(1)}">c, assembly, malware analysis, red teaming</tspan></text>
 </svg>`;
 };
 

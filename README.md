@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
-  <img src="assets/header-light.svg" width="100%" alt="wesper">
+  <img src="assets/header-light.svg" width="100%" alt="wesper, written in ASCII characters. Currently learning C, assembly, malware analysis and red teaming.">
 </picture>
 
 ### About
@@ -9,7 +9,7 @@ Engineering student, 20, from Morocco, living in Spain. I like knowing how thing
 
 ### Now
 <!-- What you're doing these weeks, and where it's going. -->
-Teaching myself C and assembly, and getting into malware analysis and red teaming. Security is where I want to end up.
+Teaching myself the low-level side on my own time, out of curiosity more than coursework. Security is where I want to end up.
 
 ### Stack
 <!-- Move things between columns as you get better at them. Keep it honest. -->

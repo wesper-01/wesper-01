@@ -13,7 +13,7 @@ Light, shown on GitHub's light theme:
 :root {
   --color-paper: #ffffff;                  /* GitHub light background, exactly */
   --color-ink: oklch(19% 0.008 260);
-  --color-muted: oklch(56% 0.01 260);
+  --color-muted: oklch(50% 0.01 260);       /* 5:1 on white, so the small line passes AA */
   /* ice, top of the letters to the bottom: deep navy into bright blue */
   --color-ice-0: #071a33; --color-ice-1: #0c2c58; --color-ice-2: #10407e; --color-ice-3: #1552a0;
   --color-ice-4: #1a64bb; --color-ice-5: #2275cc; --color-ice-6: #2f86da;
@@ -25,7 +25,7 @@ Dark, shown on GitHub's dark theme:
 [data-theme="dark"] {
   --color-paper: #0d1117;                  /* GitHub dark background, exactly */
   --color-ink: oklch(95% 0.004 260);
-  --color-muted: oklch(58% 0.012 260);
+  --color-muted: oklch(62% 0.012 260);    /* 5:1 on the dark background */
   /* ice, top of the letters to the bottom: white-hot into electric blue */
   --color-ice-0: #ffffff; --color-ice-1: #d2f1ff; --color-ice-2: #8fd8f8; --color-ice-3: #52b9ee;
   --color-ice-4: #2b93d8; --color-ice-5: #1d6cb6; --color-ice-6: #164b8a;
@@ -39,13 +39,13 @@ Dark, shown on GitHub's dark theme:
 - A slight fixed angle so the depth shows. The object never moves: no spin, no swing.
 - On load it appears as a silhouette of the bits of `wesper` and decodes left to right into its shaded characters over about 1.2 seconds, once.
 - After that it stays alive on a 10 second loop: the light drifts left and right across it (x from -0.44 to -0.12, so the faces never dim), shifting the shading, and in about one frame in three a short run of 3 to 8 cells flips to raw bits for a quarter second, then recovers.
-- Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c, assembly, malware analysis, red teaming). Label in `muted`, topic in `accent`.
+- Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c, assembly, malware analysis, red teaming). Label in `muted`, topic in `accent`, set at 24px in the 960px image so it is still readable when GitHub shrinks it on a phone. It sits right under the last row of the render, with no empty band between.
 - Under `prefers-reduced-motion: reduce` nothing moves: the lit name and the full list of topics are simply there.
 - It is the only image. No stat cards, badges, banners, photos or other generated graphics.
 
 ## The text
 - Four short sections under the header, each an `###` heading: About, Now, Stack, Also. Add or drop a section rather than letting one grow.
-- Each section is one or two lines. The Stack is one three-column table: comfortable, basics, learning.
+- Each section is one or two lines, and says something no other part of the page says: the topics live in the Stack table and the header line, so Now gives the direction, not the list again. The Stack is one three-column table: comfortable, basics, learning.
 - Every section carries an HTML comment saying how to update it; GitHub hides these, so they only show when editing.
 - Written by me, in first person or plain fragments, the way I'd say it out loud. Honest levels; never inflate them.
 - No real name; the profile goes by the handle.
