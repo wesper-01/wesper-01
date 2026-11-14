@@ -1,5 +1,5 @@
 // Builds the README header in assets/ from DESIGN.md, in a light and a dark version: the handle as a
-// 3D ASCII render (tools/ascii3d.mjs over tools/name-grid.json) that decodes out of binary once, then holds.
+// 3D ASCII render (tools/ascii3d.mjs over tools/name-grid.json) with a scan beam that shows its insides.
 // Run: node tools/build-sheets.mjs
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,37 +35,30 @@ const f = n => fs.readFileSync(path.join(ROOT, 'tools/fonts', n)).toString('base
 const face = (fam, w, file) => `@font-face{font-family:"${fam}";font-weight:${w};src:url(data:font/woff2;base64,${f(file)}) format("woff2")}`;
 const MONO = face('JetBrains Mono', 400, 'jetbrains-mono-latin-400-normal.woff2');
 
-// The render: the handle, extruded and ray-traced into characters, at a slight fixed angle. It never
-// moves. On load it decodes out of its own bits once; after that it stays alive: the light drifts
-// across it, and now and then a few cells flicker back to raw bits for a moment.
-const R = { cols: 150, rows: 27, depth: 7, yaw: 0.24, pitch: -0.2, sx: 0.66,
-  decodeAt: 0.25, decodeFor: 1.2, step: 0.06, loop: 10, loopStep: 0.25 };
+// The render: the handle, extruded and ray-traced into characters, at a slight fixed angle. It never moves.
+const R = { cols: 150, rows: 27, depth: 7, yaw: 0.24, pitch: -0.2, sx: 0.66 };
 const NAME = scene(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/name-grid.json'), 'utf8')), R.depth);
-const lightAt = t => [0.16 * Math.sin(2 * Math.PI * t / R.loop) - 0.28, 0.5, -0.85];
-const render = t => frame(NAME, R.cols, R.rows, R.yaw, R.pitch, R.sx, R.sx * 1.7, lightAt(t));
-const FINAL = render(0);
-const BITS = [...Buffer.from('wesper', 'ascii')].flatMap(b => [...b.toString(2).padStart(8, '0')]);
-let rs = 0x51ee;
-const rnd = () => ((rs = (rs * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
-const jitter = FINAL.map(l => [...l.padEnd(R.cols)].map(() => rnd()));
-const lockAt = (r, c) => R.decodeAt + R.decodeFor * (0.82 * c / R.cols + 0.18 * jitter[r][c]);
-const END = R.decodeAt + R.decodeFor + R.step;
-const trim = cells => cells.join('').replace(/\s+$/, '');
+const FINAL = frame(NAME, R.cols, R.rows, R.yaw, R.pitch, R.sx, R.sx * 1.7, [-0.28, 0.5, -0.85]);
 
-// once: the decode
-const DECODE = [[0, R.decodeAt]];
-for (let t = R.decodeAt; t < END - 1e-9; t += R.step) DECODE.push([t, Math.min(t + R.step, END)]);
-const ONCE = DECODE.map(([t0, t1], n) => ({ t0, t1, lines: FINAL.map((l, r) => trim([...l.padEnd(R.cols)].map((ch, c) => ch === ' ' ? ' ' : t0 >= lockAt(r, c) ? ch : BITS[(r * 7 + c * 3 + n) % BITS.length]))) }));
-
-// forever after: the light drifts; in about one frame in three, a short run of cells flips to bits
-const LIVE = [];
-for (let t = 0, n = 0; t < R.loop - 1e-9; t += R.loopStep, n++) {
-  const lit = render(t).map(l => [...l.padEnd(R.cols)]);
-  if (rnd() < 0.35) for (let k = 0; k < 1 + Math.floor(rnd() * 2); k++) {
-    const r = Math.floor(rnd() * R.rows), c0 = Math.floor(rnd() * R.cols), len = 3 + Math.floor(rnd() * 6);
-    for (let c = c0; c < Math.min(R.cols, c0 + len); c++) if (lit[r][c] !== ' ') lit[r][c] = BITS[(r + c + n) % BITS.length];
-  }
-  LIVE.push({ t0: t, t1: Math.min(t + R.loopStep, R.loop), lines: lit.map(trim) });
+// the scan: a single beam crosses the name, left to right, then rests. The strip just behind it
+// shows the letters' insides: their outline as edges, their body as the bytes of "wesper" in hex.
+// Ahead of the beam and once it has passed, the name is its usual solid self. Nothing moves but the beam.
+const SCAN = { start: 0.8, step: 0.05, cols: 2, band: 18, loop: 7.5 };
+const HEX = Buffer.from('wesper', 'ascii').toString('hex');
+const at = (r, c) => (FINAL[r] || '').padEnd(R.cols)[c] || ' ';
+const inside = (r, c) => {
+  if (at(r, c) === ' ') return ' ';
+  const u = at(r - 1, c) !== ' ', d = at(r + 1, c) !== ' ', l = at(r, c - 1) !== ' ', rt = at(r, c + 1) !== ' ';
+  if (u && d && l && rt) return HEX[(c + r * 3) % HEX.length];
+  if (l && rt && !(u && d)) return '-';
+  if (u && d && !(l && rt)) return '|';
+  return '+';
+};
+const SWEEP = [];
+for (let x = 0, t = SCAN.start; x <= R.cols + SCAN.band; x += SCAN.cols, t += SCAN.step) {
+  const c0 = Math.max(0, x - SCAN.band), c1 = Math.min(R.cols, x);
+  SWEEP.push({ t0: t, t1: t + SCAN.step, x, c0, c1,
+    lines: FINAL.map((_, r) => { let s = ''; for (let c = c0; c < c1; c++) s += inside(r, c); return s; }) });
 }
 
 // under it: what I'm learning, typed out, held, deleted, next
@@ -94,21 +87,27 @@ const win = (t0, t1, total, hold = false) => {
 const textBlock = (lines, anim, cls) => `<text class="${cls}" font-size="${FS.toFixed(2)}" style="${anim}">${lines.map((l, j) => `<tspan x="0" y="${(6 + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>`;
 const svg = t => {
   KF.length = 0;
-  const once = ONCE.map(({ t0, t1, lines }) => textBlock(lines, `animation:${win(t0, t1, END)} ${END}s step-end 1 both`, 'ice f')).join('\n');
-  const live = LIVE.map(({ t0, t1, lines }, i) => textBlock(lines, `animation:${win(t0, t1, R.loop)} ${R.loop}s step-end ${END}s infinite backwards`, `ice f${i ? '' : ' still'}`)).join('\n');
-  const typed = TYPED.map(({ t0, t1, text }) => `<tspan style="animation:${win(t0, t1, TYPE_LOOP)} ${TYPE_LOOP}s step-end ${END}s infinite backwards" class="acc f">${esc(text)}</tspan>`);
+  const CW = FS * 0.6, top = 6, bot = (6 + (LAST + 1.3) * LH).toFixed(1);
+  const scan = SWEEP.map(({ t0, t1, x, c0, c1, lines }) => {
+    const anim = `animation:${win(t0, t1, SCAN.loop)} ${SCAN.loop}s step-end infinite backwards`;
+    const mask = c1 > c0 ? `<rect x="${(c0 * CW).toFixed(1)}" y="${top}" width="${((c1 - c0) * CW).toFixed(1)}" height="${(bot - top).toFixed(1)}" fill="${t.paper}"/>` : '';
+    const body = c1 > c0 ? `<text class="acc" font-size="${FS.toFixed(2)}">${lines.map((l, j) => `<tspan x="${(c0 * CW).toFixed(1)}" y="${(6 + (j + 0.8) * LH).toFixed(1)}">${esc(l)}</tspan>`).join('')}</text>` : '';
+    const beam = x <= R.cols ? `<rect class="beam" x="${(x * CW).toFixed(1)}" y="${top}" width="1.5" height="${(bot - top).toFixed(1)}"/>` : '';
+    return `<g class="f" style="${anim}">${mask}${body}${beam}</g>`;
+  }).join('\n');
+  const typed = TYPED.map(({ t0, t1, text }) => `<tspan style="animation:${win(t0, t1, TYPE_LOOP)} ${TYPE_LOOP}s step-end 0.4s infinite backwards" class="acc f">${esc(text)}</tspan>`);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="wesper. Currently learning C++, assembly and reverse engineering.">
 <title>wesper</title>
 <style>${MONO}
 text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre;fill:${t.ink}}
-.ice{fill:url(#ice)}.f{opacity:0}.mut{fill:${t.muted}}.acc{fill:${t.accent}}
+.ice{fill:url(#ice)}.f{opacity:0}.mut{fill:${t.muted}}.acc{fill:${t.accent}}.beam{fill:${t.accent}}
 ${KF.join('\n')}
-@media (prefers-reduced-motion: reduce){.f,tspan{animation:none!important}.f{opacity:0}.f.still,.calm{opacity:1}}</style>
+@media (prefers-reduced-motion: reduce){.f,tspan{animation:none!important}.f{opacity:0}.calm{opacity:1}}</style>
 <defs><linearGradient id="ice" gradientUnits="userSpaceOnUse" x1="0" y1="${(6 + 1 * LH).toFixed(1)}" x2="0" y2="${(6 + 19 * LH).toFixed(1)}">
 ${[0, 1, 2, 3, 4, 5, 6].map(i => `<stop offset="${(i / 6).toFixed(3)}" stop-color="${t['ice-' + i]}"/>`).join('')}</linearGradient></defs>
 <rect width="${W}" height="${H}" fill="${t.paper}"/>
-${once}
-${live}
+${textBlock(FINAL.map(l => l.replace(/\s+$/, '')), '', 'ice')}
+${scan}
 <text font-size="${TS}" y="${LINE_Y.toFixed(1)}"><tspan class="mut" x="4">currently learning  </tspan>${typed.map(s => s.replace('<tspan ', `<tspan x="${(4 + 20 * TS * 0.6).toFixed(1)}" `)).join('')}</text>
 <text class="calm acc f" font-size="${TS}" y="${LINE_Y.toFixed(1)}"><tspan x="${(4 + 20 * TS * 0.6).toFixed(1)}">c++, assembly, reverse engineering</tspan></text>
 </svg>`;

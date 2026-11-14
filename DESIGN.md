@@ -4,7 +4,7 @@ The rules for this profile. The header image in `assets/` is generated from this
 
 ## System
 - Idea: one piece of craft, then a person talking. The header is the handle rendered in 3D ASCII; below it, plain markdown written the way I'd introduce myself.
-- Signature: `wesper` in ice, ray-traced into ASCII characters, decoding out of its own bits when the page loads and staying quietly alive after.
+- Signature: `wesper` in ice, ray-traced into ASCII characters, with a scan beam that passes over it and shows what is inside.
 - Audience: other programmers and employers. Both should finish reading knowing what I'm good at, what I'm learning, and where I'm heading.
 
 ## Tokens
@@ -37,10 +37,10 @@ Dark, shown on GitHub's dark theme:
 - `Wesper` set in Albert Sans 600, rasterized to an 86 by 22 grid (`tools/name-grid.json`, made by `tools/rasterize-name.cjs`), extruded 7 deep into voxels, ray-traced one character per cell (`tools/ascii3d.mjs`), lit from the upper front. Characters ` .:-=+*%#@`, dark to bright. JetBrains Mono, embedded.
 - Colour is ice: one vertical gradient through the seven `ice` tokens, top of the letters to the bottom, so the name reads white-hot (dark) or deep navy (light) at the top and falls into blue. The character density carries the light and shading on top of it. Ice is the only hue on the page.
 - A slight fixed angle so the depth shows. The object never moves: no spin, no swing.
-- On load it appears as a silhouette of the bits of `wesper` and decodes left to right into its shaded characters over about 1.2 seconds, once.
-- After that it stays alive on a 10 second loop: the light drifts left and right across it (x from -0.44 to -0.12, so the faces never dim), shifting the shading, and in about one frame in three a short run of 3 to 8 cells flips to raw bits for a quarter second, then recovers.
+- The scan: every 7.5 seconds a single vertical beam crosses the name, left to right, in about 4 seconds, then rests. The 18 columns just behind the beam show the letters' insides: outline cells become edges (`+ - |`) and body cells become the bytes of `wesper` in hex (77 65 73 70 65 72), in `accent`. Ahead of the beam and after it has passed, the name is solid again. It is "how things work underneath" as a picture.
+- Nothing else animates on the name: no decode, no flicker, no moving light.
 - Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c++, assembly, reverse engineering). Label in `muted`, topic in `accent`, set at 24px in the 960px image so it is still readable when GitHub shrinks it on a phone. It sits right under the last row of the render, with no empty band between.
-- Under `prefers-reduced-motion: reduce` nothing moves: the lit name and the full list of topics are simply there.
+- Under `prefers-reduced-motion: reduce` nothing moves: the solid name and the full list of topics are simply there.
 - It is the only image. No stat cards, badges, banners, photos or other generated graphics.
 
 ## The text
