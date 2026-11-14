@@ -4,34 +4,19 @@
 </picture>
 
 ### About
+<!-- One or two lines. Who you are, in plain words. -->
+Engineering student, 20, from Morocco, living in Spain. I like knowing how things work underneath.
 
-<!-- Two or three lines. Who you are, in plain words. -->
-Engineering student, 20, from Morocco and living in Spain. I like knowing how things work underneath, which is how I went from Python down to C and assembly.
-
-### Right now
-
-<!-- What you're actually doing these weeks. Add or remove lines as it changes. -->
-- Teaching myself C and assembly
-- Getting into malware analysis and red teaming
-- Studying engineering
+### Now
+<!-- What you're doing these weeks, and where it's going. -->
+Teaching myself C and assembly, and getting into malware analysis and red teaming. Security is where I want to end up.
 
 ### Stack
-
 <!-- Move things between columns as you get better at them. Keep it honest. -->
-| Comfortable | The basics | Learning on my own |
+| Comfortable | Basics | Learning |
 | --- | --- | --- |
 | Python | Java, HTML, CSS | C, assembly, malware analysis, red teaming |
 
-### Where I'm heading
-
-<!-- One or two lines about what you want to do. -->
-Security. Malware analysis and red teaming are what I want to do for a living.
-
-### Outside code
-
-<!-- Anything you're into that isn't work. -->
-Taking games apart to see how they work.
-
-### Languages
-
-Arabic, French, English, and Spanish (getting there).
+### Also
+<!-- Anything else: interests, languages. -->
+I like taking games apart to see how they work. I speak Arabic, French and English, and I'm getting there with Spanish.

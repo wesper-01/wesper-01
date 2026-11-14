@@ -44,8 +44,8 @@ Dark, shown on GitHub's dark theme:
 - It is the only image. No stat cards, badges, banners, photos or other generated graphics.
 
 ## The text
-- Six short sections under the header, each an `###` heading: About, Right now, Stack, Where I'm heading, Outside code, Languages. Add or drop a section rather than letting one grow.
-- Each section is two or three lines at most, or a short list. The Stack is one three-column table: comfortable, the basics, learning on my own.
+- Four short sections under the header, each an `###` heading: About, Now, Stack, Also. Add or drop a section rather than letting one grow.
+- Each section is one or two lines. The Stack is one three-column table: comfortable, basics, learning.
 - Every section carries an HTML comment saying how to update it; GitHub hides these, so they only show when editing.
 - Written by me, in first person or plain fragments, the way I'd say it out loud. Honest levels; never inflate them.
 - No real name; the profile goes by the handle.
