@@ -119,5 +119,64 @@ ${textBlock(NAMEROWS.map(l => l.replace(/\s+$/, '')), '', 'ice')}
 </svg>`;
 };
 
+// The panels: the profile's content (profile.json) set in plain-ASCII frames, two columns. Frames are
+// there from the start; each line is uncovered left to right, one after another, once. Bars are a level
+// in words, drawn: the word beside each bar is the truth, the bar is just its picture.
+const PROFILE = JSON.parse(fs.readFileSync(path.join(ROOT, 'profile.json'), 'utf8'));
+const P = { fs: 22, lh: 30, left: 34, gap: 2, right: 36, bar: 8, per: 0.22, wipe: 0.45 };
+const wrap = (text, w) => { const out = []; let l = '';
+  for (const word of text.split(/\s+/)) { if (l && (l + ' ' + word).length > w) { out.push(l); l = word; } else l = l ? l + ' ' + word : word; }
+  if (l) out.push(l); return out; };
+const panel = (p, w) => {
+  const inner = w - 4, top = `+- ${p.title} ${'-'.repeat(w - 5 - p.title.length)}+`, bottom = `+${'-'.repeat(w - 2)}+`;
+  const body = p.text ? wrap(p.text, inner).map(l => ({ text: l }))
+    : p.levels.map(([name, level]) => ({ text: name.padEnd(10) + ' ', bar: PROFILE.bars[level] || 0, level }));
+  return { title: p.title, top, bottom, body, cursor: p.cursor, w };
+};
+const column = (list, w) => { const rows = []; for (const p of list.map(q => panel(q, w))) { rows.push({ kind: 'top', p }); for (const b of p.body) rows.push({ kind: 'line', p, b }); rows.push({ kind: 'bottom', p }); rows.push({ kind: 'gap' }); } rows.pop(); return rows; };
+const COLS = [[0, column(PROFILE.left, P.left)], [P.left + P.gap, column(PROFILE.right, P.right)]];
+const panelsSvg = t => {
+  const cw = P.fs * 0.6, padX = (960 - (P.left + P.gap + P.right) * cw) / 2, x = c => (padX + c * cw).toFixed(1), y = r => (10 + (r + 0.75) * P.lh).toFixed(1);
+  const Ht = Math.round(20 + Math.max(...COLS.map(([, rows]) => rows.length)) * P.lh);
+  const frame = [], text = [], covers = []; let n = 0, endOfNow = null;
+  for (const [c0, rows] of COLS) rows.forEach((row, r) => {
+    if (row.kind === 'gap') return;
+    if (row.kind !== 'line') { const s = row.kind === 'top' ? row.p.top : row.p.bottom;
+      if (row.kind === 'top') { frame.push(`<tspan x="${x(c0)}" y="${y(r)}">+- </tspan><tspan class="acc">${esc(row.p.title)}</tspan><tspan> ${s.slice(4 + row.p.title.length)}</tspan>`); }
+      else frame.push(`<tspan x="${x(c0)}" y="${y(r)}">${s}</tspan>`); return; }
+    frame.push(`<tspan x="${x(c0)}" y="${y(r)}">|</tspan><tspan x="${x(c0 + row.p.w - 1)}" y="${y(r)}">|</tspan>`);
+    const b = row.b; let line = `<tspan class="ink" x="${x(c0 + 2)}" y="${y(r)}">${esc(b.text)}</tspan>`;
+    if (b.level) line += `<tspan class="ice">${'#'.repeat(b.bar)}</tspan><tspan class="dim">${'.'.repeat(P.bar - b.bar)}</tspan><tspan>  ${esc(b.level)}</tspan>`;
+    text.push(line);
+    const delay = (0.3 + n++ * P.per).toFixed(2);
+    covers.push(`<rect class="cover" x="${x(c0 + 2)}" y="${(y(r) - P.lh * 0.72).toFixed(1)}" width="${((row.p.w - 4) * cw).toFixed(1)}" height="${P.lh}" style="animation-delay:${delay}s"/>`);
+    if (row.p.cursor && rows[r + 1].kind === 'bottom') endOfNow = [c0 + 2 + b.text.length, r];
+  });
+  const cursor = endOfNow ? `<text class="acc cur" font-size="${P.fs}" x="${x(endOfNow[0])}" y="${y(endOfNow[1])}">_</text>` : '';
+  const stops = [1, 2, 3, 4, 5].map((i, k) => `<stop offset="${(k / 4).toFixed(2)}" stop-color="${t['ice-' + (t === THEMES.dark ? i : i + 1)]}"/>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="${Ht}" viewBox="0 0 960 ${Ht}" role="img" aria-label="${esc(PANELS_ALT)}">
+<title>about wesper</title>
+<style>${MONO}
+text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre;fill:${t.muted}}
+.ink{fill:${t.ink}}.acc{fill:${t.accent}}.ice{fill:url(#bar)}.dim{fill:${t.muted};fill-opacity:.45}
+.cover{fill:${t.paper};transform-box:fill-box;transform-origin:right;animation:wipe ${P.wipe}s steps(24) both}
+.cur{opacity:0;animation:blink 1.1s step-end ${(0.3 + n * P.per + P.wipe).toFixed(2)}s infinite}
+@keyframes wipe{to{transform:scaleX(0)}}@keyframes blink{0%{opacity:1}50%,100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.cover{display:none}.cur{animation:none;opacity:1}}</style>
+<defs><linearGradient id="bar" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="960" y2="0">${stops}</linearGradient></defs>
+<rect width="960" height="${Ht}" fill="${t.paper}"/>
+<text font-size="${P.fs}">${text.join('')}</text>
+${covers.join('')}
+<text font-size="${P.fs}">${frame.join('')}</text>
+${cursor}
+</svg>`;
+};
+const sentence = p => p.text ? `${p.title[0].toUpperCase()}${p.title.slice(1)}: ${p.text}` : `${p.title[0].toUpperCase()}${p.title.slice(1)}: ${p.levels.map(([n, l]) => `${n} (${l})`).join(', ')}.`;
+const PANELS_ALT = [...PROFILE.left, ...PROFILE.right].map(sentence).join(' ');
+for (const [mode, t] of Object.entries(THEMES)) fs.writeFileSync(path.join(OUT, `panels-${mode}.svg`), panelsSvg(t));
+// keep the README's alt text for the panels in step with profile.json
+const readmePath = path.join(ROOT, 'README.md'), readme = fs.readFileSync(readmePath, 'utf8');
+fs.writeFileSync(readmePath, readme.replace(/(<img src="assets\/panels-light\.svg"[^>]*alt=")[^"]*"/, (_, a) => `${a}${PANELS_ALT.replace(/"/g, '&quot;')}"`));
+
 for (const [mode, t] of Object.entries(THEMES)) fs.writeFileSync(path.join(OUT, `header-${mode}.svg`), svg(t));
 console.log('built', fs.readdirSync(OUT).map(n => `${n} ${(fs.statSync(path.join(OUT, n)).size / 1024).toFixed(0)}KB`).join(', '));

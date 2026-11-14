@@ -1,0 +1,24 @@
+# Redraws the profile images whenever their content or design changes,
+# so editing profile.json on github.com is enough to update the panels.
+name: Build profile images
+on:
+  push:
+    branches: [master]
+    paths: [profile.json, DESIGN.md, 'tools/**']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/build-sheets.mjs
+      - name: Commit the result if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets README.md
+          git diff --cached --quiet || (git commit -m "Rebuild profile images" && git push)
