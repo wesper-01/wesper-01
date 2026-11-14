@@ -39,17 +39,17 @@ Dark, shown on GitHub's dark theme:
 - A slight fixed angle so the depth shows. The object never moves: no spin, no swing.
 - On load it appears as a silhouette of the bits of `wesper` and decodes left to right into its shaded characters over about 1.2 seconds, once.
 - After that it stays alive on a 10 second loop: the light drifts left and right across it (x from -0.44 to -0.12, so the faces never dim), shifting the shading, and in about one frame in three a short run of 3 to 8 cells flips to raw bits for a quarter second, then recovers.
-- Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c, assembly, malware analysis, red teaming). Label in `muted`, topic in `accent`, set at 24px in the 960px image so it is still readable when GitHub shrinks it on a phone. It sits right under the last row of the render, with no empty band between.
+- Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c++, assembly, reverse engineering). Label in `muted`, topic in `accent`, set at 24px in the 960px image so it is still readable when GitHub shrinks it on a phone. It sits right under the last row of the render, with no empty band between.
 - Under `prefers-reduced-motion: reduce` nothing moves: the lit name and the full list of topics are simply there.
 - It is the only image. No stat cards, badges, banners, photos or other generated graphics.
 
 ## The text
-- Four short sections under the header, each an `###` heading: About, Now, Stack, Also. Add or drop a section rather than letting one grow.
-- Each section is one or two lines, and says something no other part of the page says: the topics live in the Stack table and the header line, so Now gives the direction, not the list again. The Stack is one three-column table: comfortable, basics, learning.
+- Five short sections under the header, each an `###` heading: About, Now, Stack, Past project, Also. Add or drop a section rather than letting one grow.
+- Each section is one or two lines, and says something no other part of the page says: the topics live in the Stack table and the header line, so Now says why and where it leads, not just the list again. The Stack is one three-column table: comfortable, studying in DAM, teaching myself.
 - Every section carries an HTML comment saying how to update it; GitHub hides these, so they only show when editing.
 - Written by me, in first person or plain fragments, the way I'd say it out loud. Honest levels; never inflate them.
 - No real name; the profile goes by the handle.
-- No projects until there is one worth leading with.
+- One project at most, under Past project, said plainly: what it does, that it is discontinued, and a link to its documentation. No feature lists or numbers.
 - No emoji, badges, stat cards, buzzwords, slogans, middle-dot lists, em dashes or invented numbers.
 
 ## Exports

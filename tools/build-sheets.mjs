@@ -69,7 +69,7 @@ for (let t = 0, n = 0; t < R.loop - 1e-9; t += R.loopStep, n++) {
 }
 
 // under it: what I'm learning, typed out, held, deleted, next
-const TOPICS = ['c', 'assembly', 'malware analysis', 'red teaming'];
+const TOPICS = ['c++', 'assembly', 'reverse engineering'];
 const TYPE = { char: 0.07, hold: 1.8, del: 0.035, gap: 0.35 };
 const TYPED = []; let tt = 0;
 for (const w of TOPICS) {
@@ -97,7 +97,7 @@ const svg = t => {
   const once = ONCE.map(({ t0, t1, lines }) => textBlock(lines, `animation:${win(t0, t1, END)} ${END}s step-end 1 both`, 'ice f')).join('\n');
   const live = LIVE.map(({ t0, t1, lines }, i) => textBlock(lines, `animation:${win(t0, t1, R.loop)} ${R.loop}s step-end ${END}s infinite backwards`, `ice f${i ? '' : ' still'}`)).join('\n');
   const typed = TYPED.map(({ t0, t1, text }) => `<tspan style="animation:${win(t0, t1, TYPE_LOOP)} ${TYPE_LOOP}s step-end ${END}s infinite backwards" class="acc f">${esc(text)}</tspan>`);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="wesper. Currently learning C, assembly, malware analysis and red teaming.">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="wesper. Currently learning C++, assembly and reverse engineering.">
 <title>wesper</title>
 <style>${MONO}
 text{font-family:"JetBrains Mono",ui-monospace,monospace;white-space:pre;fill:${t.ink}}
@@ -110,7 +110,7 @@ ${[0, 1, 2, 3, 4, 5, 6].map(i => `<stop offset="${(i / 6).toFixed(3)}" stop-colo
 ${once}
 ${live}
 <text font-size="${TS}" y="${LINE_Y.toFixed(1)}"><tspan class="mut" x="4">currently learning  </tspan>${typed.map(s => s.replace('<tspan ', `<tspan x="${(4 + 20 * TS * 0.6).toFixed(1)}" `)).join('')}</text>
-<text class="calm acc f" font-size="${TS}" y="${LINE_Y.toFixed(1)}"><tspan x="${(4 + 20 * TS * 0.6).toFixed(1)}">c, assembly, malware analysis, red teaming</tspan></text>
+<text class="calm acc f" font-size="${TS}" y="${LINE_Y.toFixed(1)}"><tspan x="${(4 + 20 * TS * 0.6).toFixed(1)}">c++, assembly, reverse engineering</tspan></text>
 </svg>`;
 };
 

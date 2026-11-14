@@ -1,21 +1,25 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.svg">
-  <img src="assets/header-light.svg" width="100%" alt="wesper, written in ASCII characters. Currently learning C, assembly, malware analysis and red teaming.">
+  <img src="assets/header-light.svg" width="100%" alt="wesper, written in ASCII characters. Currently learning C++, assembly and reverse engineering.">
 </picture>
 
 ### About
 <!-- One or two lines. Who you are, in plain words. -->
-Engineering student, 20, from Morocco, living in Spain. I like knowing how things work underneath.
+20, from Morocco, living in Spain. Studying DAM (multiplatform app development). I like knowing how things work underneath.
 
 ### Now
 <!-- What you're doing these weeks, and where it's going. -->
-Teaching myself the low-level side on my own time, out of curiosity more than coursework. Security is where I want to end up.
+Teaching myself C++ and getting familiar with assembly, because reverse engineering is what pulls me in. Cybersecurity is where I want to end up.
 
 ### Stack
 <!-- Move things between columns as you get better at them. Keep it honest. -->
-| Comfortable | Basics | Learning |
+| Comfortable | Studying in DAM | Teaching myself |
 | --- | --- | --- |
-| Python | Java, HTML, CSS | C, assembly, malware analysis, red teaming |
+| Python | Java, HTML, CSS | C++, assembly |
+
+### Past project
+<!-- The one project worth pointing at, and what it was. -->
+[TriageFlow](https://github.com/wesper-01/TriageFlow) sorts support emails into categories and drafts replies, using free AI models. It's discontinued, but it's the project I learned the most from. [The documentation](https://github.com/wesper-01/TriageFlow/blob/main/DOCUMENTATION.md) covers how it works.
 
 ### Also
 <!-- Anything else: interests, languages. -->
