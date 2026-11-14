@@ -11,6 +11,13 @@
 <!-- What you're doing these weeks, and where it's going. -->
 Teaching myself C++ and getting familiar with assembly, because reverse engineering is what pulls me in. Cybersecurity is where I want to end up.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/trace-dark.svg">
+  <img src="assets/trace-light.svg" width="100%" alt="A six-line C++ program that prints wesper, next to the x86-64 machine code the compiler made from it. A highlight steps through one instruction at a time while the registers change and the output spells wesper.">
+</picture>
+
+<sub>A real run: <a href="tools/trace/wesper.cpp">this program</a>, compiled with g++ and recorded one instruction at a time in gdb.</sub>
+
 ### Stack
 <!-- Move things between columns as you get better at them. Keep it honest. -->
 | Comfortable | Studying in DAM | Teaching myself |

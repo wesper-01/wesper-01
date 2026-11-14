@@ -1,0 +1,16 @@
+0000000000401136 <main>:
+  401136:	endbr64
+  40113a:	push   rbx
+  40113b:	mov    ebx,0x402004
+  401140:	mov    edi,0x77
+  401145:	add    rbx,0x1
+  401149:	movsx  edi,dil
+  40114d:	mov    rsi,QWORD PTR [rip+0x2ec4]        # 404018 <stdout@GLIBC_2.2.5>
+  401154:	call   401040 <putc@plt>
+  401159:	movzx  edi,BYTE PTR [rbx]
+  40115c:	test   dil,dil
+  40115f:	jne    401145 <main+0xf>
+  401161:	mov    eax,0x0
+  401166:	pop    rbx
+  401167:	ret
+

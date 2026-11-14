@@ -41,7 +41,14 @@ Dark, shown on GitHub's dark theme:
 - Nothing else animates on the name: no decode, no flicker, no moving light.
 - Under it, one small line: `currently learning` followed by the topic being typed out, held for 1.8 seconds, deleted, and the next one (c++, assembly, reverse engineering). Label in `muted`, topic in `accent`, set at 24px in the 960px image so it is still readable when GitHub shrinks it on a phone. It sits right under the last row of the render, with no empty band between.
 - Under `prefers-reduced-motion: reduce` nothing moves: the solid name and the full list of topics are simply there.
-- It is the only image. No stat cards, badges, banners, photos or other generated graphics.
+- No stat cards, badges, banners, photos or other generated graphics. The header and the trace are the only two images.
+
+## The trace
+- Under Now, where the text talks about C++ and assembly: a six-line C++ program that prints `wesper` on the left, the machine code g++ made from it on the right, and a highlight stepping through one instruction at a time, with the source line it came from lit alongside. Registers and `stdout` update with it.
+- Everything shown is real. The program is `tools/trace/wesper.cpp`, the listing is objdump's, and the register values come from a gdb recording (`tools/trace/trace.txt`). Nothing is invented or simplified beyond tidying spacing.
+- Same tokens as the header: `ink` for code, `muted` for addresses and labels, `accent` for the highlight and the output. One hairline frame, no fills, no rounded corners.
+- 0.34 seconds per instruction, a 3.2 second hold on the finished output, then again. Under reduced motion it shows the finished state.
+- One caption line under it in small text, saying it is a real run and linking the source.
 
 ## The text
 - Five short sections under the header, each an `###` heading: About, Now, Stack, Past project, Also. Add or drop a section rather than letting one grow.
@@ -53,4 +60,4 @@ Dark, shown on GitHub's dark theme:
 - No emoji, badges, stat cards, buzzwords, slogans, middle-dot lists, em dashes or invented numbers.
 
 ## Exports
-`assets/header-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License).
+`assets/header-{light,dark}.svg` and `assets/trace-{light,dark}.svg`, built by `node tools/build-sheets.mjs` and swapped by the README with `<picture>` and `prefers-color-scheme`. JetBrains Mono is vendored in `tools/fonts/` (SIL Open Font License).
